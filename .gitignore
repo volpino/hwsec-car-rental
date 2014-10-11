@@ -46,3 +46,6 @@ local.properties
 .idea/
 *.iml
 *.iws
+
+.classpath
+.project
