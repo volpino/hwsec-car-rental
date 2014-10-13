@@ -1,18 +1,28 @@
 package terminal.gui;
 
+import javax.smartcardio.Card;
+import javax.smartcardio.CardChannel;
+import javax.smartcardio.CardException;
+import javax.smartcardio.CardTerminal;
+import javax.smartcardio.CardTerminals;
+import javax.smartcardio.TerminalFactory;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import javax.swing.Box;
 import javax.swing.BorderFactory;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
+import javax.swing.ScrollPaneConstants;
 import javax.swing.border.Border;
 import javax.swing.JTabbedPane;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
+
 import java.awt.*;
 import java.awt.event.*;
+import java.util.List;
 
 
 public class ReceptionTerminal extends JPanel {
@@ -22,6 +32,8 @@ public class ReceptionTerminal extends JPanel {
 	
     JTextArea logArea;
     JFrame frame;
+    
+    CardChannel applet;
     
     /** Creates the GUI shown inside the frame's content pane. */
     public ReceptionTerminal(JFrame frame) {
@@ -33,6 +45,9 @@ public class ReceptionTerminal extends JPanel {
         JPanel commandsPanel = createCommandsPanel();
         logArea = new JTextArea("==== CAR RENTAL LOG ====\n", 20, 60);
         logArea.setEditable(false);
+        JScrollPane scrollLogArea = new JScrollPane(logArea);
+        scrollLogArea.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollLogArea.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
         //Lay them out.
         Border padding = BorderFactory.createEmptyBorder(20,20,5,20);
@@ -48,8 +63,11 @@ public class ReceptionTerminal extends JPanel {
                           "Commands panel"); //tooltip text
 
         add(tabbedPane, BorderLayout.CENTER);
-        add(logArea, BorderLayout.PAGE_END);
-        logArea.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        add(scrollLogArea, BorderLayout.PAGE_END);
+        
+        // Card thread
+        (new CardThread()).start();
+        //frame.setEnabled(false);
     }
 
     /** Creates the panel shown by the first tab. */
@@ -166,5 +184,58 @@ public class ReceptionTerminal extends JPanel {
                 createAndShowGUI();
             }
         });
+    }
+    
+    class CardThread extends Thread {
+        public void run() {
+            try {
+            	TerminalFactory tf = TerminalFactory.getDefault();
+    	    	CardTerminals ct = tf.terminals();
+    	    	List<CardTerminal> cs = null;
+    	    	try {
+    	    		cs = ct.list(CardTerminals.State.CARD_PRESENT);
+    	    	} catch (Exception e) {
+    	    		log("No readers available.");
+    	    		return;
+    	    	}
+    	    	if (cs.isEmpty()) {
+    	    		log("No terminals with a card found.");
+    	    		return;
+    	    	}
+    	    	
+    	    	while (true) {
+    	    		try {
+    	    			for(CardTerminal c : cs) {
+    	    				if (c.isCardPresent()) {
+    	    					try {
+    	    						Card card = c.connect("*");
+    	    						try {
+    	    							applet = card.getBasicChannel();
+    	    							log("APPLET=" + applet.toString());
+    	    						} catch (Exception e) {
+    	    							log("Card does not contain CarApplet?!");
+    	    							sleep(2000);
+    	    							continue;
+    	    						}
+    	    					} catch (CardException e) {
+    	    						log("Couldn't connect to card!");
+    	    						sleep(2000);
+    	    						continue;
+    	    					}
+    	    				} else {
+    	    					log("No card present!");
+    	    					sleep(2000);
+    	    					continue;
+    	    				}
+    	    			}
+    	    		} catch (CardException e) {
+    	    			log("Card status problem!");
+    	    		}
+    	    	}
+            } catch (Exception e) {
+                log("ERROR: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
     }
 }
