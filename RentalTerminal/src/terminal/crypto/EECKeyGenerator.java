@@ -1,33 +1,23 @@
 package terminal.crypto;
 
 import java.security.*;
-import java.security.spec.*;
 
-import javax.crypto.KeyAgreement;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.spec.ECParameterSpec; 
 
 public class EECKeyGenerator {
 
-	KeyPairGenerator kpg;
-	EllipticCurve curve;
-	ECParameterSpec ecSpec;
-	KeyPair aKeyPair;
-	KeyAgreement aKeyAgree;
-	KeyPair bKeyPair;
-	KeyAgreement bKeyAgree;
-	KeyFactory keyFac;
+	KeyPairGenerator g;
+	KeyPair pair;
 
 	public EECKeyGenerator() {
 		try {
+			ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("prime192v1");
+			KeyPairGenerator g = KeyPairGenerator.getInstance("ECDSA", "BC");
+			g.initialize(ecSpec, new SecureRandom());
+			pair = g.generateKeyPair();
 
-			aKeyPair = this.kpg.generateKeyPair();
-			aKeyAgree = KeyAgreement.getInstance("ECDH", "BC");
-			aKeyAgree.init(aKeyPair.getPrivate());
-
-			aKeyAgree.doPhase(bKeyPair.getPublic(), true);
 			
-		} catch (InvalidKeyException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -37,7 +27,19 @@ public class EECKeyGenerator {
 		} catch (NoSuchProviderException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * Testing purpose
+	 * 
+	 * @return Returns EEC keyPair
+	 */
+	public KeyPair getKeyPair(){
+		return pair;
 	}
 
 }
