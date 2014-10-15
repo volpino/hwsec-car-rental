@@ -1,11 +1,5 @@
 package terminal.gui;
 
-import javax.smartcardio.Card;
-import javax.smartcardio.CardChannel;
-import javax.smartcardio.CardException;
-import javax.smartcardio.CardTerminal;
-import javax.smartcardio.CardTerminals;
-import javax.smartcardio.TerminalFactory;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -20,9 +14,12 @@ import javax.swing.JTabbedPane;
 import javax.swing.JPanel;
 import javax.swing.JFrame;
 
+import terminal.commands.CardCommunication;
+import terminal.commands.PersonalizationCommands;
+import terminal.utils.Log;
+
 import java.awt.*;
 import java.awt.event.*;
-import java.util.List;
 
 
 public class ReceptionTerminal extends JFrame {
@@ -30,15 +27,11 @@ public class ReceptionTerminal extends JFrame {
 
 	static final String TITLE = "ReceptionTerminal";
 	
-    JTextArea logArea;
-    
-    CardChannel applet;
-    
+	private CardCommunication comm;
+        
     public ReceptionTerminal() {
     	initUI();
-    	
-        // Card thread
-        (new CardThread()).start();
+    	comm = new CardCommunication();
     }
     
     /** Creates the GUI shown inside the frame's content pane. */
@@ -53,7 +46,7 @@ public class ReceptionTerminal extends JFrame {
         // Create the components.
         JPanel setupPanel = createSetupPanel();
         JPanel commandsPanel = createCommandsPanel();
-        logArea = new JTextArea("==== CAR RENTAL LOG ====\n", 20, 60);
+        JTextArea logArea = Log.getLoggingArea();
         logArea.setEditable(false);
         JScrollPane scrollLogArea = new JScrollPane(logArea);
         scrollLogArea.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
@@ -95,7 +88,9 @@ public class ReceptionTerminal extends JFrame {
         cardSetup.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				log("Pressed " + action.getActionCommand());
+				Log.info("Pressed " + action.getActionCommand());
+				PersonalizationCommands cmds = new PersonalizationCommands(comm);
+				cmds.setCardID();
 			}
 		});
         
@@ -106,7 +101,7 @@ public class ReceptionTerminal extends JFrame {
         generateVehicleKey.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				log("Pressed " + action.getActionCommand());
+				Log.info("Pressed " + action.getActionCommand());
 			}
 		});
 
@@ -114,10 +109,6 @@ public class ReceptionTerminal extends JFrame {
         pane.add(box, BorderLayout.PAGE_START);
         // pane.add(showButton, BorderLayout.PAGE_END);
         return pane;
-    }
-    
-    public void log(String s) {
-    	logArea.append(s + "\n");
     }
 
     /** Creates the panel shown by the second tab. */
@@ -144,7 +135,7 @@ public class ReceptionTerminal extends JFrame {
         launchCommand.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				log("Pressed " + commandsList.getSelectedItem());
+				Log.info("Pressed " + commandsList.getSelectedItem());
 			}
 		});
         
@@ -172,58 +163,5 @@ public class ReceptionTerminal extends JFrame {
 				rT.setVisible(true);
             }
         });
-    }
-    
-    class CardThread extends Thread {
-        public void run() {
-            try {
-            	TerminalFactory tf = TerminalFactory.getDefault();
-    	    	CardTerminals ct = tf.terminals();
-    	    	List<CardTerminal> cs = null;
-    	    	try {
-    	    		cs = ct.list(CardTerminals.State.CARD_PRESENT);
-    	    	} catch (Exception e) {
-    	    		log("No readers available.");
-    	    		return;
-    	    	}
-    	    	if (cs.isEmpty()) {
-    	    		log("No terminals with a card found.");
-    	    		return;
-    	    	}
-    	    	
-    	    	while (true) {
-    	    		try {
-    	    			for(CardTerminal c : cs) {
-    	    				if (c.isCardPresent()) {
-    	    					try {
-    	    						Card card = c.connect("*");
-    	    						try {
-    	    							applet = card.getBasicChannel();
-    	    							log("APPLET=" + applet.toString());
-    	    						} catch (Exception e) {
-    	    							log("Card does not contain VehicleApplet?!");
-    	    							sleep(2000);
-    	    							continue;
-    	    						}
-    	    					} catch (CardException e) {
-    	    						log("Couldn't connect to card!");
-    	    						sleep(2000);
-    	    						continue;
-    	    					}
-    	    				} else {
-    	    					log("No card present!");
-    	    					sleep(2000);
-    	    					continue;
-    	    				}
-    	    			}
-    	    		} catch (CardException e) {
-    	    			log("Card status problem!");
-    	    		}
-    	    	}
-            } catch (Exception e) {
-                log("ERROR: " + e.getMessage());
-                e.printStackTrace();
-            }
-        }
     }
 }
