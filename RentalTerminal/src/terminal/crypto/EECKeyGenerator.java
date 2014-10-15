@@ -1,9 +1,10 @@
 package terminal.crypto;
 
 import java.security.*;
+import java.security.spec.ECGenParameterSpec;
 
 import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.spec.ECParameterSpec; 
+import org.bouncycastle.jce.spec.ECParameterSpec;
 
 public class EECKeyGenerator {
 
@@ -12,12 +13,11 @@ public class EECKeyGenerator {
 
 	public EECKeyGenerator() {
 		try {
-			ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("prime192v1");
-			KeyPairGenerator g = KeyPairGenerator.getInstance("ECDSA", "BC");
-			g.initialize(ecSpec, new SecureRandom());
+			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec("prime192v1");
+			g = KeyPairGenerator.getInstance("ECDSA", "BC");
+			g.initialize(ecGenSpec, new SecureRandom());
 			pair = g.generateKeyPair();
 
-			
 		} catch (IllegalStateException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -32,14 +32,23 @@ public class EECKeyGenerator {
 			e.printStackTrace();
 		}
 	}
-	
+
 	/**
 	 * Testing purpose
 	 * 
 	 * @return Returns EEC keyPair
 	 */
-	public KeyPair getKeyPair(){
+	public KeyPair getKeyPair() {
 		return pair;
+	}
+
+	public void print() {
+		System.out.println(pair.toString());
+	}
+
+	public static void main(String[] args) {
+		EECKeyGenerator gen = new EECKeyGenerator();
+		System.out.println(gen.toString());
 	}
 
 }
