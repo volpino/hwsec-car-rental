@@ -11,6 +11,9 @@ public class EECKeyGenerator {
 	KeyPairGenerator g;
 	KeyPair pair;
 
+	/*
+	 * Define a generator which produce a "prime192v1", size: 192bit
+	 */
 	public EECKeyGenerator() {
 		try {
 			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -34,22 +37,26 @@ public class EECKeyGenerator {
 		}
 	}
 
-	/**
-	 * Testing purpose
-	 * 
-	 * @return Returns EEC keyPair
-	 */
 	public KeyPair getKeyPair() {
 		return pair;
 	}
+	
+	public PublicKey getPublicKey() {
+		return pair.getPublic();
+	}
+	
+	public PrivateKey getPrivateKey() {
+		return pair.getPrivate();
+	}
 
-	public void print() {
-		System.out.println(pair.toString());
+	public void printPair() {
+		System.out.println(pair.getPrivate());
+		System.out.println(pair.getPublic());
 	}
 
 	public static void main(String[] args) {
 		EECKeyGenerator gen = new EECKeyGenerator();
-		System.out.println(gen.toString());
+		gen.printPair();
 	}
 
 }
