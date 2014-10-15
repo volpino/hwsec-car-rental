@@ -15,27 +15,13 @@ public class EECKeyGenerator {
 	/*
 	 * Define a generator which produce a "prime192v1", size: 192bit
 	 */
-	public EECKeyGenerator() {
-		try {
+	public EECKeyGenerator() throws Exception {
+		
 			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec("prime192v1");
 			g = KeyPairGenerator.getInstance("ECDSA", "BC");
 			g.initialize(ecGenSpec, new SecureRandom());
 			pair = g.generateKeyPair();
-
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchProviderException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 	}
 
 	public KeyPair getKeyPair() {
@@ -50,7 +36,8 @@ public class EECKeyGenerator {
 		return pair.getPrivate();
 	}
 	
-	public static KeyPair generateKeys(){
+	// Static method to be used in the graphic interface
+	public static KeyPair generateKeys() throws Exception{
 		EECKeyGenerator gen = new EECKeyGenerator();
 		KeyPair sc = gen.getKeyPair();
 		return sc;
@@ -62,8 +49,25 @@ public class EECKeyGenerator {
 		System.out.println(pair.getPublic());
 	}
 	public static void main(String[] args) {
-		EECKeyGenerator gen = new EECKeyGenerator();
-		gen.printPair();
+		try {
+			EECKeyGenerator gen = new EECKeyGenerator();
+			gen.printPair();
+		} catch (IllegalStateException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NoSuchProviderException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (InvalidAlgorithmParameterException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e){
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 }

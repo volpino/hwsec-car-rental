@@ -103,8 +103,13 @@ public class ReceptionTerminal extends JFrame {
 			public void actionPerformed(ActionEvent action) {
 				Log.info("Pressed " + action.getActionCommand());
 				// Testing, print keys
-				Log.info(EECKeyGenerator.generateKeys().getPrivate().toString());
-				Log.info(EECKeyGenerator.generateKeys().getPublic().toString());
+				try {
+					Log.info(EECKeyGenerator.generateKeys().getPrivate().toString());
+					Log.info(EECKeyGenerator.generateKeys().getPublic().toString());
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		});
 
