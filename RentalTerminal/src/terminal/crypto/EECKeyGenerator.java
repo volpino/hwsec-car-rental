@@ -13,6 +13,7 @@ public class EECKeyGenerator {
 
 	public EECKeyGenerator() {
 		try {
+			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec("prime192v1");
 			g = KeyPairGenerator.getInstance("ECDSA", "BC");
 			g.initialize(ecGenSpec, new SecureRandom());
