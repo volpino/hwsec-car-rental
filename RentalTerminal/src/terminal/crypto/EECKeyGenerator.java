@@ -3,8 +3,9 @@ package terminal.crypto;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 
-import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.spec.ECParameterSpec;
+//Temporary these libraries are not used
+//import org.bouncycastle.jce.ECNamedCurveTable;
+//import org.bouncycastle.jce.spec.ECParameterSpec;
 
 public class EECKeyGenerator {
 
@@ -48,15 +49,21 @@ public class EECKeyGenerator {
 	public PrivateKey getPrivateKey() {
 		return pair.getPrivate();
 	}
+	
+	public static KeyPair generateKeys(){
+		EECKeyGenerator gen = new EECKeyGenerator();
+		KeyPair sc = gen.getKeyPair();
+		return sc;
+	}
 
+	// Testing purpose
 	public void printPair() {
 		System.out.println(pair.getPrivate());
 		System.out.println(pair.getPublic());
 	}
-
 	public static void main(String[] args) {
 		EECKeyGenerator gen = new EECKeyGenerator();
 		gen.printPair();
 	}
-
+	
 }

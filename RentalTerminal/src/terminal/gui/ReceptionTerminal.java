@@ -17,10 +17,10 @@ import javax.swing.JFrame;
 import terminal.commands.CardCommunication;
 import terminal.commands.PersonalizationCommands;
 import terminal.utils.Log;
+import terminal.crypto.EECKeyGenerator;
 
 import java.awt.*;
 import java.awt.event.*;
-
 
 public class ReceptionTerminal extends JFrame {
 	private static final long serialVersionUID = -3660099088414835331L;
@@ -102,6 +102,9 @@ public class ReceptionTerminal extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				Log.info("Pressed " + action.getActionCommand());
+				// Testing, print keys
+				Log.info(EECKeyGenerator.generateKeys().getPrivate().toString());
+				Log.info(EECKeyGenerator.generateKeys().getPublic().toString());
 			}
 		});
 
