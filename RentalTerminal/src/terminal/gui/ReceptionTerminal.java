@@ -25,21 +25,31 @@ import java.awt.event.*;
 import java.util.List;
 
 
-public class ReceptionTerminal extends JPanel {
+public class ReceptionTerminal extends JFrame {
 	private static final long serialVersionUID = -3660099088414835331L;
 
 	static final String TITLE = "ReceptionTerminal";
 	
     JTextArea logArea;
-    JFrame frame;
     
     CardChannel applet;
     
+    public ReceptionTerminal() {
+    	initUI();
+    	
+        // Card thread
+        (new CardThread()).start();
+    }
+    
     /** Creates the GUI shown inside the frame's content pane. */
-    public ReceptionTerminal(JFrame frame) {
-        super(new BorderLayout());
-        this.frame = frame;
+    private void initUI() {
+        this.setTitle(TITLE);
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
+        JPanel newContentPane = new JPanel(new BorderLayout());
+        newContentPane.setOpaque(true); //content panes must be opaque
+        setContentPane(newContentPane);
+        
         // Create the components.
         JPanel setupPanel = createSetupPanel();
         JPanel commandsPanel = createCommandsPanel();
@@ -62,11 +72,9 @@ public class ReceptionTerminal extends JPanel {
                           commandsPanel,
                           "Commands panel"); //tooltip text
 
-        add(tabbedPane, BorderLayout.CENTER);
-        add(scrollLogArea, BorderLayout.PAGE_END);
+        newContentPane.add(tabbedPane, BorderLayout.CENTER);
+        newContentPane.add(scrollLogArea, BorderLayout.PAGE_END);
         
-        // Card thread
-        (new CardThread()).start();
         //frame.setEnabled(false);
     }
 
@@ -156,32 +164,12 @@ public class ReceptionTerminal extends JPanel {
         return pane;
     }
 
-    /**
-     * Create the GUI and show it.  For thread safety,
-     * this method should be invoked from the
-     * event-dispatching thread.
-     */
-    private static void createAndShowGUI() {
-        //Create and set up the window.
-        JFrame frame = new JFrame(TITLE);
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        //Create and set up the content pane.
-        ReceptionTerminal newContentPane = new ReceptionTerminal(frame);
-        newContentPane.setOpaque(true); //content panes must be opaque
-        frame.setContentPane(newContentPane);
-
-        //Display the window.
-        frame.pack();
-        frame.setVisible(true);
-    }
-
     public static void main(String[] args) {
-        //Schedule a job for the event-dispatching thread:
-        //creating and showing this application's GUI.
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
-                createAndShowGUI();
+				ReceptionTerminal rT = new ReceptionTerminal();
+				rT.pack();
+				rT.setVisible(true);
             }
         });
     }
@@ -213,7 +201,7 @@ public class ReceptionTerminal extends JPanel {
     	    							applet = card.getBasicChannel();
     	    							log("APPLET=" + applet.toString());
     	    						} catch (Exception e) {
-    	    							log("Card does not contain CarApplet?!");
+    	    							log("Card does not contain VehicleApplet?!");
     	    							sleep(2000);
     	    							continue;
     	    						}
