@@ -92,15 +92,15 @@ public class EECKeyGenerator {
 		System.out.println(pair.getPublic());
 	}
 	
-	// Testing purpose
+	// Testing purpose 
 	// NOTE remember in the GUI to catch and manage "File already exists" exception -- now it is overwritten
 	public static void main(String[] args) {
 		try {
 			EECKeyGenerator gen = new EECKeyGenerator();
 			System.out.println("Keys generated");
 			gen.printPair();
-			saveKeys(gen.getKeyPair(),"keys","BW129SZ");
-			KeyPair test = loadKeys("ECDSA","keys","BW129SZ");
+			saveKeys(gen.getKeyPair(),"keys/cars","car5");
+			KeyPair test = loadKeys("ECDSA","keys/cars","car5");
 			gen.setKeyPair(test);
 			System.out.println("Keys restored");
 			gen.printPair();
