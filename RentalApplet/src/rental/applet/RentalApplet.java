@@ -1,7 +1,7 @@
 /**
  * 
  */
-package vehicle.applet;
+package rental.applet;
 
 import javacard.framework.APDU;
 import javacard.framework.ISO7816;
@@ -13,7 +13,7 @@ import javacard.framework.Util;
  * @author javacard
  *
  */
-public class VehicleApplet extends Applet {
+public class RentalApplet extends Applet {
 	public static final byte STATUS_UNINITIALIZED = 0;
 	public static final byte STATUS_INITIALIZED   = 1;
 
@@ -36,7 +36,7 @@ public class VehicleApplet extends Applet {
 	
 	public static void install(byte[] bArray, short bOffset, byte bLength) {
 		// GP-compliant JavaCard applet registration
-		new vehicle.applet.VehicleApplet().register(bArray,
+		new rental.applet.RentalApplet().register(bArray,
 				(short) (bOffset + 1), bArray[bOffset]);
 	}
 
