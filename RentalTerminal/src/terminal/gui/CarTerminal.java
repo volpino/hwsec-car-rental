@@ -1,6 +1,7 @@
 package terminal.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -9,13 +10,19 @@ import java.beans.PropertyChangeListener;
 import java.text.NumberFormat;
 
 import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import javax.swing.ScrollPaneConstants;
+import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
@@ -43,76 +50,75 @@ public class CarTerminal extends JFrame {
 	}
 
 	private void initUI(){
-		//Set up application window
+		// Set up application window
 		setTitle(TITLE);
 		setSize(300, 200);
 		setLocationRelativeTo(null);
+
+		// Logging area
+        JTextArea logArea = Log.getLoggingArea();
+        logArea.setEditable(false);
+        JScrollPane scrollLogArea = new JScrollPane(logArea);
+        scrollLogArea.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
+        scrollLogArea.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		
-		logArea = Log.getLoggingArea();
+        // Select car combobox
+        JPanel selectCarBox = new JPanel();
+        final JComboBox carsList = new JComboBox(new String[] {"car1", "car2", "car3", "car4", "car5"});
+        selectCarBox.setLayout(new BoxLayout(selectCarBox, BoxLayout.X_AXIS));
+        selectCarBox.add(new JLabel("Select car:"));
+        selectCarBox.add(Box.createRigidArea(new Dimension(10, 0)));
+        selectCarBox.add(carsList);
+        Border padding = BorderFactory.createEmptyBorder(10,100,10,100);
+        selectCarBox.setBorder(padding);
+        
+        // Define main commands
+        JPanel mainCmdPanel = new JPanel();
+        startButton = new JButton("Start Car");
+        kilometer = new JTextField(8);
+        stopButton = new JButton("Stop Car");
+        stopButton.setEnabled(false);
+                
+        // Add components to layout
+		mainCmdPanel.add(startButton);
+		mainCmdPanel.add(new JLabel("Driven kilometers:"));
+		mainCmdPanel.add(kilometer);
+		mainCmdPanel.add(stopButton);
 		
         JPanel panel = new JPanel(new BorderLayout());
-        JPanel top = new JPanel();
-       
-        panel.add(top, BorderLayout.PAGE_START);
-        
-        //Define components
-        startButton = new JButton("Start Car");
-        JLabel kilometerLabel = new JLabel("Enter kilometer:");
-        kilometer = new JTextField(8);
-
-        stopButton = new JButton("Stop Car");
-                              
-        stopButton.setEnabled(false);
-        
-        //logArea = new JTextArea("==== CAR RENTAL LOG ====\n", 20, 60);
-		//logArea.setEditable(false);
-                
-        //Add components to layout
-		top.add(startButton);
-		top.add(kilometerLabel);
-		top.add(kilometer);
-		top.add(stopButton);
-           
+        panel.add(selectCarBox, BorderLayout.PAGE_START);
+        panel.add(mainCmdPanel);
 		add(panel);
-
-
-		add(logArea, BorderLayout.PAGE_END);
-		logArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-		
+		add(scrollLogArea, BorderLayout.PAGE_END);		
 		
 		//Add action listener
 		startButton.addActionListener(new ActionListener() {
 			
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				
-				try{
+				try {
 					driveKilometers = Double.parseDouble(kilometer.getText());
 					
-					if(isKilometerFieldValid(driveKilometers)){
+					if(isKilometerFieldValid(driveKilometers)) {
 						driving = true;
 						stopButton.setEnabled(true);
 						startButton.setEnabled(false);
 						kilometer.setEnabled(false);
 						Log.info("Driving "+driveKilometers+" kilometers");
 					}
-					else{
+					else {
 						Log.info("Invalid value for kilometer");
 						driveKilometers=0;
 					}
-					
-					
-				} catch(NumberFormatException e){
+				} catch(NumberFormatException e) {
 					Log.info("Invalid value for kilometer");
 					driveKilometers=0;
 				}
-
 				Log.info("Pressed " + action.getActionCommand());
 			}
 		});
 		
 		stopButton.addActionListener(new ActionListener() {
-			
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				driving = false;
@@ -122,8 +128,6 @@ public class CarTerminal extends JFrame {
 				Log.info("Pressed " + action.getActionCommand());
 			}
 		});
-		
-		
 		
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		pack();
@@ -138,7 +142,6 @@ public class CarTerminal extends JFrame {
 	}
 
 	public static void main(String[] args) {
-
 		EventQueue.invokeLater(new Runnable() {
 			@Override
 			public void run() {
@@ -147,5 +150,4 @@ public class CarTerminal extends JFrame {
 			}
 		});
 	}
-
 }
