@@ -9,12 +9,13 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.Arrays;
 
 public class EECSignature {
 	
 	public static byte[] signData(byte[] data, PrivateKey key) throws Exception{
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-		Signature signer = Signature.getInstance("SHA256withECDSA", "BC");
+		Signature signer = Signature.getInstance("SHA1withECDSA", "BC");
 		signer.initSign(key);
 		signer.update(data);
 		return signer.sign();
@@ -22,7 +23,7 @@ public class EECSignature {
 	
 	public static boolean verifySig(byte[] data, PublicKey key, byte[] sig) throws Exception {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-		Signature signer = Signature.getInstance("SHA256withECDSA", "BC");
+		Signature signer = Signature.getInstance("SHA1withECDSA", "BC");
 	    signer.initVerify(key);
 	    signer.update(data);
 	    return signer.verify(sig);
@@ -46,7 +47,8 @@ public class EECSignature {
 			System.out.println("Signing..");
 			signedData = signData(data, keys.getPrivate());
 			System.out.println("DONE");
-			System.out.println("The signature is: "+signedData);
+			System.out.println("The signature is: "+ Arrays.toString(signedData));
+			System.out.println("Signature length: "+ signedData.length);
 			System.out.println("Verifying Signature..");
 			boolean sigIsValid = verifySig(data, keys.getPublic(),signedData);
 			System.out.println("Signature verified: "+sigIsValid);	

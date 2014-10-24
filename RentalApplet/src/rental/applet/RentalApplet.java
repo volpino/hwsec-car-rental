@@ -8,6 +8,10 @@ import javacard.framework.ISO7816;
 import javacard.framework.Applet;
 import javacard.framework.ISOException;
 import javacard.framework.Util;
+import javacard.security.ECPrivateKey;
+import javacard.security.ECPublicKey;
+import javacard.security.KeyBuilder;
+import javacard.security.Signature;
 
 /**
  * @author javacard
@@ -34,10 +38,37 @@ public class RentalApplet extends Applet {
 	private short vehicleID  = 1337;
 	private short kilometers = 9999;
 	
+	ECPrivateKey cardPrivKey;
+	ECPublicKey cardPubKey;
+	
+	ECPublicKey companyPubKey;
+	
+	Signature companySignature;
+	Signature vehicleSignature;
+	Signature cardSignature;
+	
 	public static void install(byte[] bArray, short bOffset, byte bLength) {
-		// GP-compliant JavaCard applet registration
-		new rental.applet.RentalApplet().register(bArray,
-				(short) (bOffset + 1), bArray[bOffset]);
+		new RentalApplet();
+	}
+	
+	RentalApplet() {
+		// Create instances of keys.
+		cardPrivKey = (ECPrivateKey) KeyBuilder.buildKey(
+			KeyBuilder.TYPE_EC_FP_PRIVATE, KeyBuilder.LENGTH_EC_FP_192, false
+		);
+		cardPubKey = (ECPublicKey) KeyBuilder.buildKey(
+				KeyBuilder.TYPE_EC_FP_PUBLIC, KeyBuilder.LENGTH_EC_FP_192, false
+		);
+		
+		companyPubKey = (ECPublicKey) KeyBuilder.buildKey(
+				KeyBuilder.TYPE_EC_FP_PUBLIC, KeyBuilder.LENGTH_EC_FP_192, false
+		);
+		
+		companySignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
+		companySignature.init(companyPubKey, Signature.MODE_VERIFY);
+		
+		vehicleSignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
+		cardSignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
 	}
 
 	public void process(APDU apdu) {
@@ -79,5 +110,17 @@ public class RentalApplet extends Applet {
 				ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
 			}
 		}
+	}
+	
+	boolean verifyCompany(byte[] data) {
+		// TODO: Define some header for messages that contains length
+		return companySignature.verify(
+			data,  // buffer with data to verify
+			(short) 0,  // data to verify offset (start)
+			(short) 1,  // length of data to verify
+			data,  // signature buffer
+			(short) 0,  // signature offset (start)
+			(short) 0 // length of the signature
+		);
 	}
 }
