@@ -48,7 +48,9 @@ public class RentalApplet extends Applet {
 	Signature cardSignature;
 	
 	public static void install(byte[] bArray, short bOffset, byte bLength) {
-		new RentalApplet();
+		// GP-compliant JavaCard applet registration
+		new RentalApplet().register(bArray,
+				(short) (bOffset + 1), bArray[bOffset]);
 	}
 	
 	RentalApplet() {
