@@ -56,21 +56,22 @@ public class RentalApplet extends Applet {
 	RentalApplet() {
 		// Create instances of keys.
 		cardPrivKey = (ECPrivateKey) KeyBuilder.buildKey(
-			KeyBuilder.TYPE_EC_FP_PRIVATE, KeyBuilder.LENGTH_EC_FP_192, false
+			KeyBuilder.TYPE_EC_F2M_PRIVATE, KeyBuilder.LENGTH_EC_F2M_193, false
 		);
 		cardPubKey = (ECPublicKey) KeyBuilder.buildKey(
-				KeyBuilder.TYPE_EC_FP_PUBLIC, KeyBuilder.LENGTH_EC_FP_192, false
+				KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_193, false
 		);
 		
 		companyPubKey = (ECPublicKey) KeyBuilder.buildKey(
-				KeyBuilder.TYPE_EC_FP_PUBLIC, KeyBuilder.LENGTH_EC_FP_192, false
+				KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_193, false
 		);
-		
+
 		companySignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
-		companySignature.init(companyPubKey, Signature.MODE_VERIFY);
+		//companySignature.init(companyPubKey, Signature.MODE_VERIFY);
 		
 		vehicleSignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
 		cardSignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
+
 	}
 
 	public void process(APDU apdu) {
