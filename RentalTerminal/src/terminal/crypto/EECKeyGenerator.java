@@ -100,7 +100,7 @@ public class EECKeyGenerator {
 			System.out.println("Keys generated");
 			gen.printPair();
 			saveKeys(gen.getKeyPair(),"keys/cars","car5");
-			KeyPair test = loadKeys("ECDSA","keys/cars","car5");
+			KeyPair test = loadKeys("SHA1withECDSA","keys/cars","car5");
 			gen.setKeyPair(test);
 			System.out.println("Keys restored");
 			gen.printPair();

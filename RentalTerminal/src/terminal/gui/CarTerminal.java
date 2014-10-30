@@ -7,6 +7,11 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.IOException;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
+import java.security.spec.InvalidKeySpecException;
 import java.text.NumberFormat;
 
 import javax.swing.BorderFactory;
@@ -27,6 +32,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import terminal.utils.Log;
+import terminal.crypto.EECKeyGenerator;
 
 // TODO Add dialog such that user can "select" driven kilometers
 // TODO Optional: Add option to simulate failure of kilometer writing
@@ -42,6 +48,7 @@ public class CarTerminal extends JFrame {
 	JTextField kilometer;
 
 	double driveKilometers = 0;
+	private KeyPair carKeyPair;
 
 	JTextArea logArea;
 
@@ -104,14 +111,34 @@ public class CarTerminal extends JFrame {
 						stopButton.setEnabled(true);
 						startButton.setEnabled(false);
 						kilometer.setEnabled(false);
+						
+						Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+						carKeyPair = terminal.crypto.EECKeyGenerator.loadKeys("ECDSA", "keys/cars", carsList.getSelectedItem().toString());
+						
+						Log.info("Loaded private key for "+carsList.getSelectedItem().toString()+": "+carKeyPair.getPrivate());
+						carsList.setEnabled(false);
+						
 						Log.info("Driving "+driveKilometers+" kilometers");
 					}
 					else {
 						Log.info("Invalid value for kilometer");
 						driveKilometers=0;
 					}
-				} catch(NumberFormatException e) {
+				} catch (NoSuchAlgorithmException e) {
+					Log.info("Invalid Algorithm for Key");
+					e.printStackTrace();
+					driveKilometers=0;
+				} catch (InvalidKeySpecException e) {
+					Log.info("Invalid Key Specs");
+					e.printStackTrace();
+					driveKilometers=0;
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				catch(NumberFormatException e) {
 					Log.info("Invalid value for kilometer");
+					e.printStackTrace();
 					driveKilometers=0;
 				}
 				Log.info("Pressed " + action.getActionCommand());
@@ -125,6 +152,7 @@ public class CarTerminal extends JFrame {
 				stopButton.setEnabled(false);
 				startButton.setEnabled(true);
 				kilometer.setEnabled(true);
+				carsList.setEnabled(true);
 				Log.info("Pressed " + action.getActionCommand());
 			}
 		});
