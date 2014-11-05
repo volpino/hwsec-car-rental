@@ -150,45 +150,19 @@ public class RentalApplet extends Applet {
 					//ISOException.throwIt((short) 0x9999);
 					break;
 			case CMD_VERIFY_TEST:
-					/*
-				    short inLength = Util.getShort(buf, ISO7816.OFFSET_CDATA);
-					short inOffset = ISO7816.OFFSET_CDATA+2;
-					short sigLength = (short)(buf.length - inOffset - inLength);
-					short sigOffset = (short) (inOffset + inLength);
-					*/
-					boolean res = false;
-					byte[] data = {72, 101, 121, 74, 117, 115, 116, 84, 114, 121, 73, 116};
-					byte[] sig = {48, 45, 2, 20, 12, -65, -15, -86, -69, -127, -120, -52, 79, 27, -84, -3, -34, 81, -105, 86, -62, 74, -106, 104, 2, 21, 1, -88, 84, -98, 103, 30, -20, 24, -101, -82, 55, 122, 16, -39, -68, -86, 57, -24, -70, 62, 123};
-					short siglen = 0;
-						//res = companySignature.verify(buf, inOffset, inLength, buf, sigOffset, sigLength);
-						//res = companySignature.verify(data, (short)0, (short)data.length, sig, (short)0, (short)sig.length);
-						try {
-						siglen = cardSignature.sign(data, (short)0, (short)data.length, buf, (short) 2);
-						} catch (Exception e) {
-							ISOException.throwIt((short)0x6001);
-						}
-						try {
-							res = companySignature.verify(data, (short)0, (short)data.length, buf, (short) 2, siglen);
-						} catch(Exception e) {
-							ISOException.throwIt((short)0x6002);
-						}
-
-						if(!res) {
-							ISOException.throwIt((short)0x6004);
-						}
-						Util.setShort(buf, (short) 0, siglen);
-						short outlen = apdu.setOutgoing();
-						short myoutlen = (short) (2+siglen);
-						if(myoutlen > outlen) {
-							ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);	
-						}
-						apdu.setOutgoingLength(myoutlen);
-						apdu.sendBytes((short) 0, myoutlen);
-					/*
-					if (!res) {
-						ISOException.throwIt((short)0x6666);
-					}*/
-						ISOException.throwIt((short)0x9999);
+				short inLength = Util.getShort(buf, ISO7816.OFFSET_CDATA);
+				short inOffset = ISO7816.OFFSET_CDATA + 2;
+				short sigOffset = (short) (inOffset + inLength);
+				short lc = (short) (buf[ISO7816.OFFSET_LC] & 0x00FF);
+				short sigLength = (short) (lc - 2 - inLength);
+				//byte[] sig = {48, 46, 2, 21, 0, -64, 85, -124, -115, 21, 63, 70, -58, -122, 42, -81, -44, 62, 116, 39, 126, 37, 21, 32, -105, 2, 21, 2, 108, -86, 57, 26, -27, 40, 3, 57, -59, 120, -39, -45, 56, 124, -9, 12, 63, -110, 70, -1};
+				//byte[] data = {116, 101, 115, 116};
+				boolean res = companySignature.verify(buf, inOffset, inLength, buf, sigOffset, sigLength);
+				if(!res) {
+					ISOException.throwIt((short)0x6004);
+				}
+				ISOException.throwIt((short)0x9999);
+						
 				break;
 			case CMD_RESET:
 				status = STATUS_UNINITIALIZED;

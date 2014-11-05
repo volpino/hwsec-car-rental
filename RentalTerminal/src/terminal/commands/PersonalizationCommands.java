@@ -62,30 +62,21 @@ public class PersonalizationCommands {
 
 	public void verifyTest() {
 		try {
-		String input = "test";
-		byte[] data = input.getBytes();
-		System.out.println("loading key pair..");
-		KeyPair keys;
+			byte[] data = "test".getBytes();
+			System.out.println("loading key pair..");
+			KeyPair keys;
 			keys = EECKeyGenerator.loadKeys("ECDSA", "keys/cars","car1");
-
-		System.out.println("DONE");
-		System.out.println("Data: " + Arrays.toString(data));
-		
-		System.out.println("Signing..");
-		byte[] signedData = EECSignature.signData(data, keys.getPrivate());
-		System.out.println("DONE");
-		System.out.println("The signature is: "+ Arrays.toString(signedData));
-		System.out.println("Signature length: "+ signedData.length);
-
-		
-		ResponseAPDU response;
-		ByteArrayOutputStream stream = new ByteArrayOutputStream(); 
-		stream.write(Conversions.short2bytes((short) data.length));
-		stream.write(data);
-		stream.write(signedData);
-		response = comm.sendCommandAPDU(
+			
+			byte[] signedData = EECSignature.signData(data, keys.getPrivate());
+			
+			ByteArrayOutputStream stream = new ByteArrayOutputStream(); 
+			stream.write(Conversions.short2bytes((short) data.length));
+			stream.write(data);
+			stream.write(signedData);
+			System.out.println(Arrays.toString(stream.toByteArray()));
+			ResponseAPDU response = comm.sendCommandAPDU(
 				new CommandAPDU(CLA_ISSUE, CMD_VERIFY_TEST, 0x00, 0x00, stream.toByteArray(), 255)
-		);
+			);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
