@@ -14,13 +14,15 @@ public class EECKeyGenerator {
 
 	KeyPairGenerator g;
 	KeyPair pair;
+	
+	static {
+		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+	}
 
 	/*
 	 * Define a generator which produce a "prime192v1", size: 192bit
 	 */
-	public EECKeyGenerator() throws Exception {
-		
-			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
+	public EECKeyGenerator() throws Exception {		
 			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec("c2pnb163v1");
 			g = KeyPairGenerator.getInstance("ECDSA", "BC");
 			g.initialize(ecGenSpec, new SecureRandom());
