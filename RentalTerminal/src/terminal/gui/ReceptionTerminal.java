@@ -93,6 +93,33 @@ public class ReceptionTerminal extends JFrame {
 				cmds.setCardID();
 			}
 		});
+
+        JButton cardTest = new JButton("Key test");
+        box.add(cardTest);
+        box.add(Box.createRigidArea(new Dimension(0,10)));
+        
+        cardTest.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent action) {
+				Log.info("Pressed " + action.getActionCommand());
+				PersonalizationCommands cmds = new PersonalizationCommands(comm);
+				cmds.keyTest();
+			}
+		});
+
+        JButton cardTest2 = new JButton("Verify test");
+        box.add(cardTest2);
+        box.add(Box.createRigidArea(new Dimension(0,10)));
+        
+        cardTest2.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent action) {
+				Log.info("Pressed " + action.getActionCommand());
+				PersonalizationCommands cmds = new PersonalizationCommands(comm);
+				cmds.verifyTest();
+			}
+		});
+        
         
         JButton generateVehicleKey = new JButton("Generate vehicle key");
         box.add(generateVehicleKey);

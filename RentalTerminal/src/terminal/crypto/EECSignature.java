@@ -41,9 +41,14 @@ public class EECSignature {
 		byte[] data1 = test1.getBytes();
 			
 		try{
-			System.out.println("Creating key pair..");
-			KeyPair keys = EECKeyGenerator.generateKeys();
+			//System.out.println("Creating key pair..");
+			//KeyPair keys = EECKeyGenerator.generateKeys();
+			System.out.println("loading key pair..");
+			KeyPair keys = EECKeyGenerator.loadKeys("ECDSA", "keys/cars","car1");
+
 			System.out.println("DONE");
+			System.out.println("Data: " + Arrays.toString(data));
+			
 			System.out.println("Signing..");
 			signedData = signData(data, keys.getPrivate());
 			System.out.println("DONE");
