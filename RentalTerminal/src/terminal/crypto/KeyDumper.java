@@ -3,7 +3,7 @@ package terminal.crypto;
 import java.math.BigInteger;
 import java.security.KeyPair;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECFieldFp;
+import java.security.spec.ECFieldF2m;
 import java.security.spec.ECParameterSpec;
 import java.security.spec.EllipticCurve;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ public class KeyDumper {
 			show("G.X", params.getGenerator().getAffineX());
 			show("G.Y", params.getGenerator().getAffineY());
 			show("R", params.getOrder());
-			show("(fieldF)P",  ((ECFieldFp)curve.getField()) .getP() );
+			show("(fieldF)P",  ((ECFieldF2m)curve.getField()) .getMidTermsOfReductionPolynomial() );
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -40,5 +40,9 @@ public class KeyDumper {
 
 	public static void show(String str, BigInteger n) {
 		System.out.println(str + "("+ n.toByteArray().length+"):\t" + Arrays.toString(n.toByteArray()));
+	}
+	
+	public static void show(String str, int[] n) {
+		System.out.println(str + "("+ n.length+"):\t" + Arrays.toString(n));
 	}
 }

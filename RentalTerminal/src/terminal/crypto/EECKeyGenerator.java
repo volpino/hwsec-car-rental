@@ -21,7 +21,7 @@ public class EECKeyGenerator {
 	public EECKeyGenerator() throws Exception {
 		
 			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec("prime192v1");
+			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec("c2pnb163v1");
 			g = KeyPairGenerator.getInstance("ECDSA", "BC");
 			g.initialize(ecGenSpec, new SecureRandom());
 			pair = g.generateKeyPair();
@@ -95,28 +95,32 @@ public class EECKeyGenerator {
 	// Testing purpose 
 	// NOTE remember in the GUI to catch and manage "File already exists" exception -- now it is overwritten
 	public static void main(String[] args) {
+		for (int i=0; i <= 5; i++) {
+			try {
+				EECKeyGenerator gen = new EECKeyGenerator();
+				System.out.println("Generating cars keys...");
+				gen.printPair();
+				saveKeys(gen.getKeyPair(),"keys/cars","car"+i);
+				KeyPair test = loadKeys("ECDSA","keys/cars","car"+i);
+				gen.setKeyPair(test);
+				System.out.println("Keys restored");
+				gen.printPair();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
 		try {
 			EECKeyGenerator gen = new EECKeyGenerator();
-			System.out.println("Keys generated");
+			System.out.println("Generating company keys...");
 			gen.printPair();
-			saveKeys(gen.getKeyPair(),"keys/cars","car5");
-			KeyPair test = loadKeys("SHA1withECDSA","keys/cars","car5");
+			saveKeys(gen.getKeyPair(),"keys/master", "company");
+			KeyPair test = loadKeys("ECDSA","keys/master", "company");
 			gen.setKeyPair(test);
 			System.out.println("Keys restored");
 			gen.printPair();
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (NoSuchProviderException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (InvalidAlgorithmParameterException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (Exception e){
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
