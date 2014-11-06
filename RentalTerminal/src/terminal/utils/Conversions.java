@@ -3,6 +3,7 @@ package terminal.utils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.interfaces.ECPublicKey;
+import java.util.Arrays;
 
 public class Conversions {
 	final static int FIELD_SIZE = 21;  // Specific for 163 bit curve (163bit = 21 bytes)
@@ -54,5 +55,13 @@ public class Conversions {
 	        hexChars[j * 2 + 1] = hexArray[v & 0x0F];
 	    }
 	    return new String(hexChars);
+	}
+	
+	public static byte[] getChunk(byte[] buf, int base, int index) {
+		int length = buf[base] & 0xFF;
+		for (int i=0; i<index; i++) {
+			base += length + 1;
+		}
+		return Arrays.copyOfRange(buf, base+1, base+1+buf[base]);		
 	}
 }

@@ -16,6 +16,7 @@ import javax.swing.JFrame;
 
 import terminal.commands.CardCommunication;
 import terminal.commands.PersonalizationCommands;
+import terminal.commands.ReceptionCommands;
 import terminal.utils.Log;
 import terminal.crypto.ECCKeyGenerator;
 
@@ -30,8 +31,8 @@ public class ReceptionTerminal extends JFrame {
 	private CardCommunication comm;
         
     public ReceptionTerminal() {
-    	initUI();
     	comm = new CardCommunication();
+    	initUI();
     }
     
     /** Creates the GUI shown inside the frame's content pane. */
@@ -114,10 +115,35 @@ public class ReceptionTerminal extends JFrame {
 
         JPanel cmdBox = new JPanel();
         cmdBox.setLayout(new BoxLayout(cmdBox, BoxLayout.X_AXIS));
+      
+        final JButton authenticate = new JButton("Authenticate");
+        final JButton launchCommand = new JButton("Launch command");
+        launchCommand.setEnabled(false);
+        commandsList.setEnabled(false);
+
+        cmdBox.add(authenticate);
+        cmdBox.add(Box.createRigidArea(new Dimension(40, 0)));
+        
+		final ReceptionCommands receptionCmds = new ReceptionCommands(comm);
+        authenticate.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent action) {
+				try {
+					receptionCmds.sendInitNonce();
+				} catch (Exception e) {
+					Log.error("Error: " + e.getMessage());
+					e.printStackTrace();
+					return;
+				}
+				
+		        launchCommand.setEnabled(true);
+		        commandsList.setEnabled(true);
+		        authenticate.setEnabled(false);
+			}
+		});
+        
         cmdBox.add(commandsList);
         cmdBox.add(Box.createRigidArea(new Dimension(20, 0)));
-        
-        JButton launchCommand = new JButton("Launch command");
         cmdBox.add(launchCommand);
         
         launchCommand.addActionListener(new ActionListener() {

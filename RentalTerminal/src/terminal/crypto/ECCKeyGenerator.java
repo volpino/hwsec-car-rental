@@ -71,8 +71,7 @@ public class ECCKeyGenerator {
 		fos.close();
 	}
 	
-	
-	public static KeyPair loadKeys(String path, String keyName) throws IOException, NoSuchAlgorithmException,
+	public static PublicKey loadPublicKey(String path, String keyName) throws IOException, NoSuchAlgorithmException,
 	InvalidKeySpecException {
 		// Read Public Key
 		File filePublicKey = new File(path+"/"+keyName+".pub");
@@ -80,18 +79,28 @@ public class ECCKeyGenerator {
 		byte[] encodedPublicKey = new byte[(int) filePublicKey.length()];
 		fis.read(encodedPublicKey);
 		fis.close();
+		// Regenerate KeyPair.
+		KeyFactory keyFactory = KeyFactory.getInstance("ECDSA");
+		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedPublicKey);
+		PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
+		return publicKey;
+	}
+	
+	public static KeyPair loadKeys(String path, String keyName) throws IOException, NoSuchAlgorithmException,
+	InvalidKeySpecException {
+		PublicKey publicKey = loadPublicKey(path, keyName);
+
 		// Read Private Key
 		File filePrivateKey = new File(path+"/"+keyName);
-		fis = new FileInputStream(path+"/"+keyName);
+		FileInputStream fis = new FileInputStream(path+"/"+keyName);
 		byte[] encodedPrivateKey = new byte[(int) filePrivateKey.length()];
 		fis.read(encodedPrivateKey);
 		fis.close();
 		// Regenerate KeyPair.
 		KeyFactory keyFactory = KeyFactory.getInstance("ECDSA");
-		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedPublicKey);
-		PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(encodedPrivateKey);
 		PrivateKey privateKey = keyFactory.generatePrivate(privateKeySpec);
+
 		return new KeyPair(publicKey, privateKey);
 	}
 
