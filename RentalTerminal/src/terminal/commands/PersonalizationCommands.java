@@ -13,8 +13,10 @@ import java.util.Arrays;
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
 
-import terminal.crypto.EECKeyGenerator;
-import terminal.crypto.EECSignature;
+import org.bouncycastle.pqc.jcajce.spec.ECCKeyGenParameterSpec;
+
+import terminal.crypto.ECCKeyGenerator;
+import terminal.crypto.ECCSignature;
 import terminal.utils.Conversions;
 import terminal.utils.Log;
 
@@ -28,14 +30,15 @@ public class PersonalizationCommands {
 
 	CardCommunication comm;
 	SecureRandom random;
+	byte[] cardID;
 	
 	public PersonalizationCommands(CardCommunication c) {
 		comm = c;
 		random = new SecureRandom();
 	}
 	
-	public void setCardID() {
-		byte[] cardID = new byte[2];
+	void setCardID() {
+		cardID = new byte[2];
 		random.nextBytes(cardID);
 		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_CARDID, 0x00, 0x00, cardID)
@@ -43,10 +46,12 @@ public class PersonalizationCommands {
 		Log.info("Card ID set to " + Arrays.toString(cardID));
 	}
 	
-	public void setCardKeyPair() {
+	void setCardKeyPair() {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
 		try {
-			KeyPair pair = EECKeyGenerator.generateKeys();	
+			KeyPair pair = ECCKeyGenerator.generateKeys();
+			ECCKeyGenerator.savePublicKey(pair, "keys/customers", Conversions.bytesToHex(cardID));
+			
 			ECPublicKey pub = (ECPublicKey) pair.getPublic();
 			ECPrivateKey priv = (ECPrivateKey) pair.getPrivate();
 
@@ -67,10 +72,10 @@ public class PersonalizationCommands {
 		Log.info("Keypair generated and sent to the smartcard");
 	}
 	
-	public void setCompanyPublicKey() {
+	void setCompanyPublicKey() {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
 		try {
-			KeyPair pair = EECKeyGenerator.loadKeys("keys/master", "company");			
+			KeyPair pair = ECCKeyGenerator.loadKeys("keys/master", "company");			
 			ECPublicKey pub = (ECPublicKey) pair.getPublic();
 			byte[] pubEncoded = Conversions.encodePubKey(pub);
 			data.write(pubEncoded.length);
@@ -84,7 +89,7 @@ public class PersonalizationCommands {
 		Log.info("Company public key sent to the smartcard");
 	}
 	
-	public void setRandomSeed() {
+	void setRandomSeed() {
 		byte[] seed = new byte[8];
 		random.nextBytes(seed);
 		ResponseAPDU response = comm.sendCommandAPDU(

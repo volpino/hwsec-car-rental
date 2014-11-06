@@ -32,7 +32,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import terminal.utils.Log;
-import terminal.crypto.EECKeyGenerator;
+import terminal.crypto.ECCKeyGenerator;
 
 // TODO Add dialog such that user can "select" driven kilometers
 // TODO Optional: Add option to simulate failure of kilometer writing
@@ -113,7 +113,7 @@ public class CarTerminal extends JFrame {
 						kilometer.setEnabled(false);
 						
 						Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-						carKeyPair = terminal.crypto.EECKeyGenerator.loadKeys("keys/cars", carsList.getSelectedItem().toString());
+						carKeyPair = terminal.crypto.ECCKeyGenerator.loadKeys("keys/cars", carsList.getSelectedItem().toString());
 						
 						Log.info("Loaded private key for "+carsList.getSelectedItem().toString()+": "+carKeyPair.getPrivate());
 						carsList.setEnabled(false);

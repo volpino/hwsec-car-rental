@@ -17,7 +17,7 @@ import javax.swing.JFrame;
 import terminal.commands.CardCommunication;
 import terminal.commands.PersonalizationCommands;
 import terminal.utils.Log;
-import terminal.crypto.EECKeyGenerator;
+import terminal.crypto.ECCKeyGenerator;
 
 import java.awt.*;
 import java.awt.event.*;

@@ -11,7 +11,7 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Arrays;
 
-public class EECSignature {
+public class ECCSignature {
 	
 	public static byte[] signData(byte[] data, PrivateKey key) throws Exception{
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
@@ -44,7 +44,7 @@ public class EECSignature {
 			//System.out.println("Creating key pair..");
 			//KeyPair keys = EECKeyGenerator.generateKeys();
 			System.out.println("loading key pair..");
-			KeyPair keys = EECKeyGenerator.loadKeys("keys/cars", "car1");
+			KeyPair keys = ECCKeyGenerator.loadKeys("keys/cars", "car1");
 
 			System.out.println("DONE");
 			System.out.println("Data: " + Arrays.toString(data));
