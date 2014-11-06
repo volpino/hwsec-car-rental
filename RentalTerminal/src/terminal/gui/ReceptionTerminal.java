@@ -58,13 +58,13 @@ public class ReceptionTerminal extends JFrame {
         commandsPanel.setBorder(padding);
 
         JTabbedPane tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Setup", null,
-                          setupPanel,
-                          "Setup panel"); //tooltip text
         tabbedPane.addTab("Commands", null,
                           commandsPanel,
                           "Commands panel"); //tooltip text
-
+        tabbedPane.addTab("Setup", null,
+                		  setupPanel,
+                		  "Setup panel"); //tooltip text
+        
         newContentPane.add(tabbedPane, BorderLayout.CENTER);
         newContentPane.add(scrollLogArea, BorderLayout.PAGE_END);
         
@@ -88,55 +88,8 @@ public class ReceptionTerminal extends JFrame {
         cardSetup.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				Log.info("Pressed " + action.getActionCommand());
 				PersonalizationCommands cmds = new PersonalizationCommands(comm);
-				cmds.setCardID();
-			}
-		});
-
-        JButton cardTest = new JButton("Key test");
-        box.add(cardTest);
-        box.add(Box.createRigidArea(new Dimension(0,10)));
-        
-        cardTest.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent action) {
-				Log.info("Pressed " + action.getActionCommand());
-				PersonalizationCommands cmds = new PersonalizationCommands(comm);
-				cmds.keyTest();
-			}
-		});
-
-        JButton cardTest2 = new JButton("Verify test");
-        box.add(cardTest2);
-        box.add(Box.createRigidArea(new Dimension(0,10)));
-        
-        cardTest2.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent action) {
-				Log.info("Pressed " + action.getActionCommand());
-				PersonalizationCommands cmds = new PersonalizationCommands(comm);
-				cmds.verifyTest();
-			}
-		});
-        
-        
-        JButton generateVehicleKey = new JButton("Generate vehicle key");
-        box.add(generateVehicleKey);
-        box.add(Box.createRigidArea(new Dimension(0,10)));
-        
-        generateVehicleKey.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent action) {
-				Log.info("Pressed " + action.getActionCommand());
-				// Testing, print keys
-				try {
-					Log.info(EECKeyGenerator.generateKeys().getPrivate().toString());
-					Log.info(EECKeyGenerator.generateKeys().getPublic().toString());
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				cmds.doIssuance();
 			}
 		});
 

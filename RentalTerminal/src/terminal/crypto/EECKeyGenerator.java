@@ -66,7 +66,7 @@ public class EECKeyGenerator {
 		fos.close();
 	}
 	
-	public static KeyPair loadKeys(String algorithm, String path, String carID) throws IOException, NoSuchAlgorithmException,
+	public static KeyPair loadKeys(String path, String carID) throws IOException, NoSuchAlgorithmException,
 	InvalidKeySpecException {
 		// Read Public Key
 		File filePublicKey = new File(path+"/"+carID+".pub");
@@ -81,7 +81,7 @@ public class EECKeyGenerator {
 		fis.read(encodedPrivateKey);
 		fis.close();
 		// Regenerate KeyPair.
-		KeyFactory keyFactory = KeyFactory.getInstance(algorithm);
+		KeyFactory keyFactory = KeyFactory.getInstance("ECDSA");
 		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedPublicKey);
 		PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 		PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(encodedPrivateKey);
@@ -103,7 +103,7 @@ public class EECKeyGenerator {
 				System.out.println("Generating cars keys...");
 				gen.printPair();
 				saveKeys(gen.getKeyPair(),"keys/cars","car"+i);
-				KeyPair test = loadKeys("ECDSA","keys/cars","car"+i);
+				KeyPair test = loadKeys("keys/cars","car"+i);
 				gen.setKeyPair(test);
 				System.out.println("Keys restored");
 				gen.printPair();
@@ -118,7 +118,7 @@ public class EECKeyGenerator {
 			System.out.println("Generating company keys...");
 			gen.printPair();
 			saveKeys(gen.getKeyPair(),"keys/master", "company");
-			KeyPair test = loadKeys("ECDSA","keys/master", "company");
+			KeyPair test = loadKeys("keys/master","company");
 			gen.setKeyPair(test);
 			System.out.println("Keys restored");
 			gen.printPair();

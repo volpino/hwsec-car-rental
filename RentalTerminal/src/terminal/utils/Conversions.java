@@ -1,8 +1,47 @@
 package terminal.utils;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.security.interfaces.ECPublicKey;
+
 public class Conversions {
+	final static int FIELD_SIZE = 21;  // Specific for 163 bit curve (163bit = 21 bytes)
+	
 	public static byte[] short2bytes(short s) {
 		byte[] res = {(byte)((s >> 8) & 0xff), (byte)(s&0xff) };
 		return res;
+	}
+	
+	public static byte[] encodePubKey(ECPublicKey pub) {
+		ByteArrayOutputStream data = new ByteArrayOutputStream();
+		byte[] x = pub.getW().getAffineX().toByteArray();
+		byte[] y = pub.getW().getAffineY().toByteArray();
+		try {
+			data.write(new byte[]{0x04});  // non compressed X9.62 encoding
+			for (int i=0; i<(FIELD_SIZE-x.length); i++) {
+				data.write(0);  // pad with zeros
+			}
+			data.write(x);
+			for (int i=0; i<(FIELD_SIZE-y.length); i++) {
+				data.write(0);  // pad with zeros
+			}
+			data.write(y);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return data.toByteArray();
+	}
+	
+	public static byte[] padToFieldSize(byte[] input) {
+		ByteArrayOutputStream data = new ByteArrayOutputStream();
+		try {
+			for (int i=0; i<(FIELD_SIZE-input.length); i++) {
+				data.write(0);  // pad with zeros
+			}
+			data.write(input);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return data.toByteArray();
 	}
 }

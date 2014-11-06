@@ -4,6 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.interfaces.ECPrivateKey;
+import java.security.interfaces.ECPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 
@@ -13,75 +16,87 @@ import javax.smartcardio.ResponseAPDU;
 import terminal.crypto.EECKeyGenerator;
 import terminal.crypto.EECSignature;
 import terminal.utils.Conversions;
+import terminal.utils.Log;
+
 
 public class PersonalizationCommands {
-	// TODO: Move CLA and INS to a more general class
 	public static final byte CLA_ISSUE = (byte) 0xB0;
-	public static final byte CMD_INIT = (byte) 0x00;
-	public static final byte CMD_RESET = (byte) 0x41;
-	public static final byte CMD_READ_CARD_ID = (byte) 0x50;
-	public static final byte CMD_READ_VEHICLE_ID = (byte) 0x51;
-	public static final byte CMD_READ_KILOMETERS = (byte) 0x52;
+	public static final byte CMD_CARDID = (byte) 0x00;
+	public static final byte CMD_CARDKEYS = (byte) 0x01;
+	public static final byte CMD_COMPANYPUB = (byte) 0x02;
+	public static final byte CMD_RANDSEED = (byte) 0x03;
 
-	public static final byte CMD_KEY_TEST    = (byte) 0x60;
-	public static final byte CMD_VERIFY_TEST = (byte) 0x61;
-	public static final int RESP_OK = 0x9000;
-
-
-	
 	CardCommunication comm;
+	SecureRandom random;
 	
 	public PersonalizationCommands(CardCommunication c) {
 		comm = c;
+		random = new SecureRandom();
 	}
 	
 	public void setCardID() {
+		byte[] cardID = new byte[2];
+		random.nextBytes(cardID);
 		ResponseAPDU response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_ISSUE, CMD_INIT, 0x00, 0x00, new byte[] {0x01, 0x02})
+			new CommandAPDU(CLA_ISSUE, CMD_CARDID, 0x00, 0x00, cardID)
 		);
-		
-		response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_ISSUE, CMD_READ_VEHICLE_ID, 0x00, 0x00, 0x02)
-		);
-		
-		response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_ISSUE, CMD_READ_KILOMETERS, 0x00, 0x00, 0x02)
-		);
-		
-		response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_ISSUE, CMD_READ_CARD_ID, 0x00, 0x00, 0x02)
-		);
+		Log.info("Card ID set to " + Arrays.toString(cardID));
 	}
 	
-	public void keyTest() {
-		ResponseAPDU response;
-		response = comm.sendCommandAPDU(
-				new CommandAPDU(CLA_ISSUE, CMD_KEY_TEST, 0x00, 0x00)
-		);
-	}
-
-	public void verifyTest() {
+	public void setCardKeyPair() {
+		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
 		try {
-			byte[] data = "test".getBytes();
-			System.out.println("loading key pair..");
-			KeyPair keys;
-			keys = EECKeyGenerator.loadKeys("ECDSA", "keys/cars","car1");
+			KeyPair pair = EECKeyGenerator.generateKeys();	
+			ECPublicKey pub = (ECPublicKey) pair.getPublic();
+			ECPrivateKey priv = (ECPrivateKey) pair.getPrivate();
+
+			byte[] pubEncoded = Conversions.encodePubKey(pub);
+			data.write(pubEncoded.length);
+			data.write(pubEncoded);
 			
-			byte[] signedData = EECSignature.signData(data, keys.getPrivate());
-			
-			ByteArrayOutputStream stream = new ByteArrayOutputStream(); 
-			stream.write(Conversions.short2bytes((short) data.length));
-			stream.write(data);
-			stream.write(signedData);
-			System.out.println(Arrays.toString(stream.toByteArray()));
-			ResponseAPDU response = comm.sendCommandAPDU(
-				new CommandAPDU(CLA_ISSUE, CMD_VERIFY_TEST, 0x00, 0x00, stream.toByteArray(), 255)
-			);
+			// private key
+			byte[] s = Conversions.padToFieldSize(priv.getS().toByteArray());
+			data.write(s.length);
+			data.write(s);
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		ResponseAPDU response = comm.sendCommandAPDU(
+			new CommandAPDU(CLA_ISSUE, CMD_CARDKEYS, 0x00, 0x00, data.toByteArray())
+		);
+		Log.info("Keypair generated and sent to the smartcard");
 	}
 	
+	public void setCompanyPublicKey() {
+		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
+		try {
+			KeyPair pair = EECKeyGenerator.loadKeys("keys/master", "company");			
+			ECPublicKey pub = (ECPublicKey) pair.getPublic();
+			byte[] pubEncoded = Conversions.encodePubKey(pub);
+			data.write(pubEncoded.length);
+			data.write(pubEncoded);	
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		ResponseAPDU response = comm.sendCommandAPDU(
+			new CommandAPDU(CLA_ISSUE, CMD_COMPANYPUB, 0x00, 0x00, data.toByteArray())
+		);
+		Log.info("Company public key sent to the smartcard");
+	}
+	
+	public void setRandomSeed() {
+		byte[] seed = new byte[8];
+		random.nextBytes(seed);
+		ResponseAPDU response = comm.sendCommandAPDU(
+			new CommandAPDU(CLA_ISSUE, CMD_RANDSEED, 0x00, 0x00, seed)
+		);
+		Log.info("Random seed set");
+	}
+	
+	public void doIssuance() {
+		setCardID();
+		setCardKeyPair();
+		setCompanyPublicKey();
+		setRandomSeed();
+	}
 }

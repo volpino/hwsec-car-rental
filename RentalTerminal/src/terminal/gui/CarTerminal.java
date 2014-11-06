@@ -113,7 +113,7 @@ public class CarTerminal extends JFrame {
 						kilometer.setEnabled(false);
 						
 						Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-						carKeyPair = terminal.crypto.EECKeyGenerator.loadKeys("ECDSA", "keys/cars", carsList.getSelectedItem().toString());
+						carKeyPair = terminal.crypto.EECKeyGenerator.loadKeys("keys/cars", carsList.getSelectedItem().toString());
 						
 						Log.info("Loaded private key for "+carsList.getSelectedItem().toString()+": "+carKeyPair.getPrivate());
 						carsList.setEnabled(false);

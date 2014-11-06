@@ -44,7 +44,7 @@ public class EECSignature {
 			//System.out.println("Creating key pair..");
 			//KeyPair keys = EECKeyGenerator.generateKeys();
 			System.out.println("loading key pair..");
-			KeyPair keys = EECKeyGenerator.loadKeys("ECDSA", "keys/cars","car1");
+			KeyPair keys = EECKeyGenerator.loadKeys("keys/cars", "car1");
 
 			System.out.println("DONE");
 			System.out.println("Data: " + Arrays.toString(data));
