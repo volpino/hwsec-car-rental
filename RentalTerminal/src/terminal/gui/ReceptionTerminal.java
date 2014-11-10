@@ -1,5 +1,6 @@
 package terminal.gui;
 
+
 import javax.swing.JComboBox;
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -103,11 +104,11 @@ public class ReceptionTerminal extends JFrame {
     /** Creates the panel shown by the second tab. */
     private JPanel createCommandsPanel() {        
         // Possible operations
-        String CHECK_INUSE = "Check InUse flag";
+        final String CHECK_INUSE = "Check InUse flag";
         String ADD_VEHICLE = "Add certificate for vehicle";
         String REMOVE_VEHICLE = "Remove certificate from card";
-        String GET_MILEAGE = "Get mileage counting";
-        String RESET_MILEAGE = "Reset mileage counting";
+        final String GET_MILEAGE = "Get mileage counting";
+        final String RESET_MILEAGE = "Reset mileage counting";
 
         String[] commands = {CHECK_INUSE, ADD_VEHICLE, REMOVE_VEHICLE, GET_MILEAGE, RESET_MILEAGE};
         
@@ -150,6 +151,33 @@ public class ReceptionTerminal extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				Log.info("Pressed " + commandsList.getSelectedItem());
+				if(commandsList.getSelectedItem().toString().equals(GET_MILEAGE)){
+					try {
+						int kilometerOnCard = receptionCmds.getKilometers();
+						Log.info("Read out "+kilometerOnCard+" driven kilometers.");
+					} catch (Exception e) {
+						Log.error("Could not read out kilometers");
+						e.printStackTrace();
+					}
+				}
+				if(commandsList.getSelectedItem().toString().equals(RESET_MILEAGE)){
+					try {
+						receptionCmds.resetKilometers();
+						Log.info("Kilometers on card reseted");
+					} catch (Exception e) {
+						Log.error("Could not reset kilometers");
+						e.printStackTrace();
+					}
+				}
+				if(commandsList.getSelectedItem().toString().equals(CHECK_INUSE)){
+					try {
+						int inUseFlag = receptionCmds.checkInUseFlag();
+						Log.info("InUseFlag on card is set to: "+ inUseFlag);
+					} catch (Exception e) {
+						Log.error("Could not check inUseFlag");
+						e.printStackTrace();
+					}
+				}
 			}
 		});
         

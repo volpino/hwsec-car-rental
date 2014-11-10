@@ -12,6 +12,7 @@ import javax.smartcardio.ResponseAPDU;
 import terminal.crypto.ECCKeyGenerator;
 import terminal.crypto.ECCSignature;
 import terminal.utils.Conversions;
+import terminal.utils.Log;
 
 
 public class ReceptionCommands {
@@ -55,6 +56,8 @@ public class ReceptionCommands {
 		cardNonce = Arrays.copyOfRange(buf, 2, 10);
 		byte[] signature = Arrays.copyOfRange(buf, 10, buf.length);
 		
+		Log.info("Card ID: "+Conversions.bytesToHex(cardID));
+		
 		cardKey = ECCKeyGenerator.loadPublicKey("keys/customers", Conversions.bytesToHex(cardID));
 		boolean result = ECCSignature.verifySig(nonce, cardKey, signature);
 		if (!result) {
@@ -69,7 +72,8 @@ public class ReceptionCommands {
 		KeyPair companyKey = ECCKeyGenerator.loadKeys("keys/master", "company");
 		dataToSign.write(cardNonce);
 		dataToSign.write(command);
-		dataToSign.write(payload);
+		if(payload!=null)
+			dataToSign.write(payload);
 		byte[] signature = ECCSignature.signData(dataToSign.toByteArray(), companyKey.getPrivate());
 		
 		byte[] nonce = new byte[8];
@@ -77,8 +81,13 @@ public class ReceptionCommands {
 		
 		ByteArrayOutputStream dataToSend = new ByteArrayOutputStream();
 		dataToSend.write(nonce);
-		dataToSend.write(payload.length);
-		dataToSend.write(payload);
+		if(payload!=null){
+			dataToSend.write(payload.length);
+			dataToSend.write(payload);
+		}
+		else
+			dataToSend.write(0);
+		
 		dataToSend.write(signature.length);
 		dataToSend.write(signature);
 		
@@ -87,16 +96,36 @@ public class ReceptionCommands {
 		);
 		byte[] buf = response.getData();
 		cardNonce = Arrays.copyOfRange(buf, 0, 8);
-		byte[] result = Conversions.getChunk(buf, 8, 0);
-		byte[] cardSignature = Conversions.getChunk(buf, 8, 1);
 		
 		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
 		dataToVerify.write(nonce);
-		dataToVerify.write(result);
+		byte[] result = null;
+		
+		if((short)buf[8]!=0){
+			result = Conversions.getChunk(buf, 8, 0);
+			dataToVerify.write(result);
+		}
+		
+		byte[] cardSignature = Conversions.getChunk(buf, 8, 1);
+		
 		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, cardSignature);
 		if (!verified) {
 			throw new Exception("Invalid signature from the card. The result of the command is not valid");
 		}
 		return result;
+	}
+	
+	public int getKilometers() throws Exception{
+		byte[] kilometers = sendCommand(CMD_REC_GET_KM, null);
+		return  Conversions.bytesToInt(kilometers);
+	}
+	
+	public void resetKilometers() throws Exception{
+			sendCommand(CMD_REC_RESET_KM, null);
+	}
+	
+	public int checkInUseFlag() throws Exception{
+		byte[] inUseFlag = sendCommand(CMD_REC_CHECK_INUSE, null);
+		return  Conversions.bytesToInt(inUseFlag);
 	}
 }

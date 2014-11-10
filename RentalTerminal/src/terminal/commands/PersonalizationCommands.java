@@ -41,9 +41,9 @@ public class PersonalizationCommands {
 		cardID = new byte[2];
 		random.nextBytes(cardID);
 		ResponseAPDU response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_ISSUE, CMD_CARDID, 0x00, 0x00, cardID)
+			new CommandAPDU(CLA_ISSUE, CMD_CARDID, 0x00, 0x00, cardID, 2)
 		);
-		Log.info("Card ID set to " + Arrays.toString(cardID));
+		Log.info("Card ID set to " + Conversions.bytesToHex(cardID));
 	}
 	
 	void setCardKeyPair() {
