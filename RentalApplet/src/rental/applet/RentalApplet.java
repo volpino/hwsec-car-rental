@@ -298,21 +298,18 @@ public class RentalApplet extends Applet {
 		key.setG(CURVE_G, (short)0, (short) CURVE_G.length);
 	}
 	
-	
-	// command signatures have the structure:
-	// nonce (8byte) + command (1byte) + payload (optional - variable length)
-	// Attention: method works only for commands without payload from the terminal
 	boolean verifySignature(byte command, byte[] buf){
-		//byte[] dataToVerify = JCSystem.makeTransientByteArray((short) 9, JCSystem.CLEAR_ON_RESET);		
 		//Copy old card nonce
 		Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) 8);
 		//Copy command
 		dataToVerify[8] = command;
 		//Copy payload
-		//Util.arrayCopy(buf, (short) (ISO7816.OFFSET_CDATA+1+8+1), dataToVerify, (short) 8, Util.getShort(buf, );
-		//findOffset(buf, (short) (ISO7816.OFFSET_CDATA+9), (short) buf[(short)(ISO7816.OFFSET_CDATA+9)]);
+		findOffset(buf, (short) (8+ISO7816.OFFSET_CDATA), (short) 0);
+		if(offset[1]!=0)
+			Util.arrayCopy(buf, offset[0], dataToVerify, (short) 8, offset[1]);
 		
-		return companySignature.verify(dataToVerify, (short) 0, (short) dataToVerify.length, buf, (short) (ISO7816.OFFSET_CDATA+8+1+1), (short) 48);
+		findOffset(buf, (short) (8+ISO7816.OFFSET_CDATA), (short) 1);
+		return companySignature.verify(dataToVerify, (short) 0, (short) dataToVerify.length, buf, offset[0], offset[1]);
 
 	}
 }
