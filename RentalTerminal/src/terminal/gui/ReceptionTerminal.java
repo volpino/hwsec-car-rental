@@ -7,6 +7,7 @@ import javax.swing.JLabel;
 import javax.swing.BoxLayout;
 import javax.swing.Box;
 import javax.swing.BorderFactory;
+import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.ScrollPaneConstants;
@@ -31,6 +32,7 @@ public class ReceptionTerminal extends JFrame {
 	static final String TITLE = "ReceptionTerminal";
 	
 	private CardCommunication comm;
+	JFrame frame = this;
         
     public ReceptionTerminal() {
     	comm = new CardCommunication();
@@ -152,7 +154,7 @@ public class ReceptionTerminal extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				Log.info("Pressed " + commandsList.getSelectedItem());
-				if (commandsList.getSelectedItem().toString().equals(GET_MILEAGE)){
+				if (commandsList.getSelectedItem().toString().equals(GET_MILEAGE)) {
 					try {
 						int kilometerOnCard = receptionCmds.getKilometers();
 						Log.info("Read out "+kilometerOnCard+" driven kilometers.");
@@ -161,7 +163,7 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if (commandsList.getSelectedItem().toString().equals(RESET_MILEAGE)){
+				if (commandsList.getSelectedItem().toString().equals(RESET_MILEAGE)) {
 					try {
 						receptionCmds.resetKilometers();
 						Log.info("Kilometers on card were reset");
@@ -170,7 +172,7 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if (commandsList.getSelectedItem().toString().equals(CHECK_INUSE)){
+				if (commandsList.getSelectedItem().toString().equals(CHECK_INUSE)) {
 					try {
 						boolean inUseFlag = receptionCmds.checkInUseFlag();
 						Log.info("InUseFlag on card is set to: "+ inUseFlag);
@@ -179,9 +181,20 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if (commandsList.getSelectedItem().toString().equals(ADD_VEHICLE)){
+				if (commandsList.getSelectedItem().toString().equals(ADD_VEHICLE)) {
 					try {
-						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", "car0");
+						Object[] cars = {"car0", "car1", "car2", "car3", "car4", "car5"};
+						String carID = (String) JOptionPane.showInputDialog(
+							frame,
+							"Please choose a vehicle",
+						    "Choose vehicle",
+						    JOptionPane.PLAIN_MESSAGE,
+						    null,
+						    cars,
+						    cars[0]
+						);
+
+						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", carID);
 						receptionCmds.addVehicleCert(key);
 						Log.info("The card is now associated with the vehicle");
 					} catch (Exception e) {
@@ -189,7 +202,7 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if (commandsList.getSelectedItem().toString().equals(REMOVE_VEHICLE)){
+				if (commandsList.getSelectedItem().toString().equals(REMOVE_VEHICLE)) {
 					try {
 						receptionCmds.deleteVehicleCert();
 						Log.info("Vehicle de-associated with card");
