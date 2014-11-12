@@ -14,9 +14,7 @@ public class KeyDumper {
 	public static void main(String[] args) {
 		System.out.println("Loading master key pair..");
 		try {
-			ECCKeyGenerator gen =  new ECCKeyGenerator();
 			KeyPair keys = ECCKeyGenerator.loadKeys("keys/master", "company");
-//			KeyPair keys = EECKeyGenerator.loadKeys("ECDSA", "keys/master","company");
 			System.out.println("DONE");
 			ECPublicKey pub = (ECPublicKey) keys.getPublic();
 			ECParameterSpec params = pub.getParams();

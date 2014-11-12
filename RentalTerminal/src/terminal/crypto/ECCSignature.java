@@ -37,8 +37,8 @@ public class ECCSignature {
 		byte[] signedData;
 		
 		// Try to verify with a wrong data to make sure it works
-		String test1 = "HHHeyJustTryIt";
-		byte[] data1 = test1.getBytes();
+		//String test1 = "HHHeyJustTryIt";
+		//byte[] data1 = test1.getBytes();
 			
 		try{
 			//System.out.println("Creating key pair..");
