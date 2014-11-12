@@ -1,22 +1,14 @@
 package terminal.commands;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
 
 import javax.smartcardio.CommandAPDU;
-import javax.smartcardio.ResponseAPDU;
-
-import org.bouncycastle.pqc.jcajce.spec.ECCKeyGenParameterSpec;
 
 import terminal.crypto.ECCKeyGenerator;
-import terminal.crypto.ECCSignature;
 import terminal.utils.Conversions;
 import terminal.utils.Log;
 
@@ -40,7 +32,7 @@ public class PersonalizationCommands {
 	void setCardID() {
 		cardID = new byte[2];
 		random.nextBytes(cardID);
-		ResponseAPDU response = comm.sendCommandAPDU(
+		comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_CARDID, 0x00, 0x00, cardID, 2)
 		);
 		Log.info("Card ID set to " + Conversions.bytesToHex(cardID));
@@ -66,7 +58,7 @@ public class PersonalizationCommands {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		ResponseAPDU response = comm.sendCommandAPDU(
+		comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_CARDKEYS, 0x00, 0x00, data.toByteArray())
 		);
 		Log.info("Keypair generated and sent to the smartcard");
@@ -83,7 +75,7 @@ public class PersonalizationCommands {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		ResponseAPDU response = comm.sendCommandAPDU(
+		comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_COMPANYPUB, 0x00, 0x00, data.toByteArray())
 		);
 		Log.info("Company public key sent to the smartcard");
@@ -92,7 +84,7 @@ public class PersonalizationCommands {
 	void setRandomSeed() {
 		byte[] seed = new byte[8];
 		random.nextBytes(seed);
-		ResponseAPDU response = comm.sendCommandAPDU(
+		comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_RANDSEED, 0x00, 0x00, seed)
 		);
 		Log.info("Random seed set");

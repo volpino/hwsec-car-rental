@@ -23,6 +23,10 @@ public class Log {
 		logger.log(Level.SEVERE, o.toString());
 	}
 	
+	public static void debug(Object o) {
+		logger.log(Level.INFO, o.toString());		
+	}
+	
 	public static JTextArea getLoggingArea() {
 		for(Handler handler: logger.getHandlers()){
 			if(handler instanceof TextAreaHandler){

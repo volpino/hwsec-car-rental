@@ -40,12 +40,17 @@ public class RentalApplet extends Applet {
 	public static final byte CMD_REC_RESET_KM = (byte) 0x02;
 	public static final byte CMD_REC_CHECK_INUSE = (byte) 0x03;
 	public static final byte CMD_REC_ADD_CERT = (byte) 0x04;
-	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
+	public static final byte CMD_REC_ADD_VEHICLE_PUB = (byte) 0x05;
+	public static final byte CMD_REC_DEL_CERT = (byte) 0x06;
+	
+	public static final short NONCE_LENGTH = 8;
 
 	private short cardID = 0;
 	private short vehicleID = 1337;
 	private short kilometers = 9999;
-	private short inUse = 0; 
+	private boolean inUse = false; 
+	private boolean hasVehiclePub = false;
+	private boolean hasVehicleCert = false;
 
 	private RandomData random;
 	
@@ -59,8 +64,10 @@ public class RentalApplet extends Applet {
 	// Ram-stored arrays
 	short[] offset;
 	byte[] nonce;
-	byte[] tmp;
-	byte[] dataToVerify;
+	byte[] tmp1;
+	byte[] tmp2;
+	
+	byte[] vehicleCert;
 	
 	ECPrivateKey cardPrivKey;
 	ECPublicKey cardPubKey;
@@ -81,10 +88,12 @@ public class RentalApplet extends Applet {
 	RentalApplet() {
 		// Create instances of transient arrays
 		offset = JCSystem.makeTransientShortArray((short) 2, JCSystem.CLEAR_ON_RESET);
-		nonce = JCSystem.makeTransientByteArray((short) 8, JCSystem.CLEAR_ON_RESET);
-		tmp = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
-		//dataToVerify = JCSystem.makeTransientByteArray((short) 9, JCSystem.CLEAR_ON_RESET);
-
+		nonce = JCSystem.makeTransientByteArray((short) NONCE_LENGTH, JCSystem.CLEAR_ON_RESET);
+		tmp1 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
+		tmp2 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
+		
+		// vehicle certificate array
+		vehicleCert = new byte[64];
 		
 		// Create instances of keys.
 		cardPrivKey = (ECPrivateKey) KeyBuilder.buildKey(
@@ -155,24 +164,20 @@ public class RentalApplet extends Applet {
 		}
 		else {			
 			if (buf[ISO7816.OFFSET_CLA] == CLA_RECEPTION) {
-				short sigLen;
-				short totLen;
-				short le;
-				
 				switch (buf[ISO7816.OFFSET_INS]) {
 				case CMD_REC_INIT:
-					// save the nonce in tmp
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp, (short)0, (short)8);
+					// save the nonce in tmp1
+					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short)0, (short)8);
 					// Copy cardID and new nonce to the response buffer
 					Util.setShort(buf, (short)0, cardID);
 					random.generateData(buf, (short) 2, (short)8);
 					// Store new card nonce
 					Util.arrayCopy(buf, (short)2, nonce, (short)0, (short)8);
 					// sign the terminal nonce and put it in the response buffer
-					sigLen = cardSignature.sign(tmp, (short)0, (short)8, buf, (short)(2+8));
-					totLen = (short) (sigLen + 2 + 8);
+					short sigLen = cardSignature.sign(tmp1, (short)0, (short)8, buf, (short)(2+8));
+					short totLen = (short) (sigLen + 2 + 8);
 					
-					le = apdu.setOutgoing();
+					short le = apdu.setOutgoing();
 					if (le < totLen) {
 						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 					}
@@ -180,172 +185,67 @@ public class RentalApplet extends Applet {
 					apdu.sendBytes((short)0, totLen);
 					break;
 				case CMD_REC_GET_KM:
-					// save the nonce in tmp
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp, (short)0, (short)8);
+					verifyCommand(buf);
+
+					Util.setShort(tmp2, (short) 0, kilometers);
 					
-					// verify company signature					
-					if(!verifySignature(CMD_REC_GET_KM, buf))
-						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
-					
-					// create new nonce
-					random.generateData(buf, (short) 0, (short)8);
-					
-					// Store new card nonce into nonce
-					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short)8);
-					
-					// write kilometers in tmp and buf
-					buf[8] = (byte) 2;
-					Util.setShort(buf, (short) 9, kilometers);
-					Util.setShort(tmp, (short) 8, kilometers);
-					
-					// sign new nonce + kilometers with cardSignature
-					sigLen = cardSignature.sign(tmp, (short)0, (short)10, buf, (short)(12));
-					buf[11] = (byte) sigLen;
-					totLen = (short) (sigLen + 8 + 1 + 2 +1);
-					le = apdu.setOutgoing();
-					
-					if (le < totLen) {
-						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-					}
-					
-					apdu.setOutgoingLength(totLen);					 
-					apdu.sendBytes((short)0, totLen);
+					sendResponse(buf, apdu, tmp2, (short)2);
 					break;
 				case CMD_REC_RESET_KM:
-					// save the nonce in tmp
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp, (short)0, (short)8);
-					
-					// verify company signature					
-					if(!verifySignature(CMD_REC_RESET_KM, buf))
-						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
-					
-					// create new nonce
-					random.generateData(buf, (short) 0, (short)8);
-					
-					// Store new card nonce into nonce
-					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short)8);
-					
-					// Set size of response payload to 0
-					buf[8] = (byte) 0;
+					verifyCommand(buf);
 					
 					// Set kilometer counter to 0
 					kilometers = 0;
 					
-					// sign new nonce + kilometers with cardSignature
-					sigLen = cardSignature.sign(tmp, (short)0, (short)8, buf, (short)(10));
-					buf[9] = (byte) sigLen;
-					totLen = (short) (sigLen + 8 + 1 + 1);
-					le = apdu.setOutgoing();
-					
-					if (le < totLen) {
-						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-					}
-					
-					apdu.setOutgoingLength(totLen);					 
-					apdu.sendBytes((short)0, totLen);
+					sendResponse(buf, apdu, null, (short)0);
 					break;
 				case CMD_REC_CHECK_INUSE:
-					// save the nonce in tmp
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp, (short)0, (short)8);
+					verifyCommand(buf);
 					
-					// verify company signature					
-					if(!verifySignature(CMD_REC_CHECK_INUSE, buf))
-						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+					tmp2[0] = (byte) (inUse ? 1 : 0);
 					
-					// create new nonce
-					random.generateData(buf, (short) 0, (short)8);
-					
-					// Store new card nonce into nonce
-					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short)8);
-					
-					// write inUse value in tmp and buf
-					buf[8] = (byte) 2;
-					Util.setShort(buf, (short) 9, inUse);
-					Util.setShort(tmp, (short) 8, inUse);
-					
-					// sign new nonce + kilometers with cardSignature
-					sigLen = cardSignature.sign(tmp, (short)0, (short)10, buf, (short)(12));
-					buf[11] = (byte) sigLen;
-					totLen = (short) (sigLen + 8 + 1 + 2 +1);
-					le = apdu.setOutgoing();
-					
-					if (le < totLen) {
-						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-					}
-					
-					apdu.setOutgoingLength(totLen);					 
-					apdu.sendBytes((short)0, totLen);
+					sendResponse(buf, apdu, tmp2, (short)1);
 					break;
 				case CMD_REC_ADD_CERT:
-					// save the nonce in tmp
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp, (short)0, (short)8);
-					
-					// verify company signature					
-					if(!verifySignature(CMD_REC_ADD_CERT, buf))
-						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+					verifyCommand(buf);
 										
-					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+8), (short) 0);
-					vehiclePubKey.setW(buf, offset[0], offset[1]);
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
+					Util.arrayCopy(buf, offset[0], vehicleCert, (short) 0, offset[1]);
+					hasVehicleCert = true;
 					
-					vehicleSignature.init(vehiclePubKey, Signature.MODE_VERIFY);				
-					
-					// create new nonce
-					random.generateData(buf, (short) 0, (short)8);
-					
-					// Store new card nonce into nonce
-					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short)8);
-					
-					// Set size of response payload to 0
-					buf[8] = (byte) 0;
-					
-					// sign new nonce
-					sigLen = cardSignature.sign(tmp, (short)0, (short)8, buf, (short)(10));
-					buf[9] = (byte) sigLen;
-					totLen = (short) (sigLen + 8 + 1 + 1);
-					le = apdu.setOutgoing();
-					
-					if (le < totLen) {
-						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-					}
-					
-					apdu.setOutgoingLength(totLen);					 
-					apdu.sendBytes((short)0, totLen);
+					sendResponse(buf, apdu, null, (short)0);
 					break;
+				case CMD_REC_ADD_VEHICLE_PUB:
+					try {
+					verifyCommand(buf);
+					} catch (Exception e) { ISOException.throwIt((short) 0x9997); }
+				
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
+					try {
+						vehiclePubKey.setW(buf, offset[0], offset[1]);
+					} catch (Exception e) { ISOException.throwIt((short) 0x9998); }
+
+					try {
+					vehicleSignature.init(vehiclePubKey, Signature.MODE_VERIFY);
+					} catch (Exception e) { ISOException.throwIt((short) 0x9999); }
+					hasVehiclePub = true;
+					
+					try {
+					sendResponse(buf, apdu, null, (short)0);
+					} catch (Exception e) { ISOException.throwIt((short) 0x9996); }
+					break;					
 				case CMD_REC_DEL_CERT:
-					// save the nonce in tmp
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp, (short)0, (short)8);
+					verifyCommand(buf);
 					
-					// verify company signature					
-					if(!verifySignature(CMD_REC_DEL_CERT, buf))
-						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
-					
-					// create new nonce
-					random.generateData(buf, (short) 0, (short)8);
-					
-					// Store new card nonce into nonce
-					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short)8);
-					
-					// Set size of response payload to 0
-					buf[8] = (byte) 0;
+					hasVehicleCert = false;
+					hasVehiclePub = false;
 					
 					// Delete Vehicle Key
 					vehiclePubKey.clearKey();
+					Util.arrayFillNonAtomic(vehicleCert, (short) 0, (short) vehicleCert.length, (byte) 0);
 					
-					// sign new nonce + kilometers with cardSignature
-					sigLen = cardSignature.sign(tmp, (short)0, (short)8, buf, (short)(10));
-					buf[9] = (byte) sigLen;
-					totLen = (short) (sigLen + 8 + 1 + 1);
-					le = apdu.setOutgoing();
-					
-					if (le < totLen) {
-						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-					}
-					
-					apdu.setOutgoingLength(totLen);					 
-					apdu.sendBytes((short)0, totLen);
+					sendResponse(buf, apdu, null, (short)0);
 					break;
-					
-					
 				default:
 					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
 				}
@@ -373,21 +273,74 @@ public class RentalApplet extends Applet {
 		key.setG(CURVE_G, (short)0, (short) CURVE_G.length);
 	}
 	
-	boolean verifySignature(byte command, byte[] buf){		
-		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+8), (short) 0);
-		dataToVerify = JCSystem.makeTransientByteArray((short) (8+1+offset[1]), JCSystem.CLEAR_ON_RESET);
+	
+	void verifyCommand(byte[] buf) {		
+		// save the terminal nonce in tmp1
+		Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short)0, (short)NONCE_LENGTH);
+		
+		// find payload
+		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
+		
+		// use tmp2 as buffer for data to verify
+		byte[] dataToVerify = tmp2;
+		short lengthToVerify = (short) (NONCE_LENGTH + 1 + offset[1]);
+		
+		// Copy old card nonce
+		Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) NONCE_LENGTH);
+		
+		dataToVerify[NONCE_LENGTH] = buf[ISO7816.OFFSET_INS];  // Copy command
 
-		//Copy old card nonce
-		Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) 8);
-		//Copy command
-		dataToVerify[8] = command;
-
-		if(offset[1]!=(short)0){
-			Util.arrayCopy(buf, (short)(offset[0]), dataToVerify, (short) 9, offset[1]);
+		if (offset[1] != (short)0) {  // if there is a payload in the command
+			Util.arrayCopy(
+				buf, (short)(offset[0]), dataToVerify, (short) (NONCE_LENGTH+1), offset[1]
+			);
 		}
 
-		findOffset(buf, (short) (8+ISO7816.OFFSET_CDATA), (short) 1);
-		return companySignature.verify(dataToVerify, (short) 0, (short) dataToVerify.length, buf, offset[0], offset[1]);
+		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
+		boolean verified = companySignature.verify(
+			dataToVerify, (short) 0, lengthToVerify, buf, offset[0], offset[1]
+		);
 
+		if (!verified)
+			ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+	}
+	
+	void sendResponse(byte[] buf, APDU apdu, byte[] response, short responseLength) {
+		// tmp1 contains the terminal nonce
+		byte[] terminalNonce = tmp1;
+		
+		// create new nonce
+		random.generateData(buf, (short) 0, (short)NONCE_LENGTH);
+		
+		// Store new card nonce into nonce
+		Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short)NONCE_LENGTH);
+		
+		if (response != null) {
+			// Set size of response payload
+			Util.arrayCopy(response, (short) 0, terminalNonce, (short) NONCE_LENGTH, responseLength);
+			Util.arrayCopy(response, (short) 0, buf, (short) (NONCE_LENGTH+1), responseLength);
+		}
+		buf[NONCE_LENGTH] = (byte) responseLength;
+		
+		// sign new nonce
+		short sigLen = cardSignature.sign(
+			terminalNonce,  // data to sign
+			(short) 0,  // start of data to sign
+			(short) (NONCE_LENGTH+responseLength),  // length to sign is nonce + response
+			buf,  // destination
+			(short)(NONCE_LENGTH+1+responseLength+1)  // put the signature after nonce, response length, response data and signature length  
+		);
+		buf[NONCE_LENGTH + 1 + responseLength] = (byte) sigLen;  // write signature length
+		
+		// total length is nonce + response length + response data + signature length + signature data
+		short totLen = (short) (NONCE_LENGTH + 1 + responseLength + 1 + sigLen);
+		short le = apdu.setOutgoing();
+		
+		if (le < totLen) {
+			ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+		}
+		
+		apdu.setOutgoingLength(totLen);					 
+		apdu.sendBytes((short)0, totLen);
 	}
 }

@@ -2,7 +2,6 @@ package terminal.commands;
 
 import java.io.ByteArrayOutputStream;
 import java.security.KeyPair;
-import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
@@ -23,9 +22,11 @@ public class ReceptionCommands {
 	public static final byte CMD_REC_RESET_KM = (byte) 0x02;
 	public static final byte CMD_REC_CHECK_INUSE = (byte) 0x03;
 	public static final byte CMD_REC_ADD_CERT = (byte) 0x04;
-	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
+	public static final byte CMD_REC_ADD_VEHICLE_PUB = (byte) 0x05;
+	public static final byte CMD_REC_DEL_CERT = (byte) 0x06;
 
-
+	public static final short NONCE_LENGTH = 8;
+	
 	CardCommunication comm;
 	SecureRandom random;
 	
@@ -34,7 +35,7 @@ public class ReceptionCommands {
 	
 	boolean cardAuthenticated = false;
 	
-	PublicKey cardKey;
+	ECPublicKey cardKey;
 	
 	
 	public ReceptionCommands(CardCommunication c) {
@@ -43,7 +44,7 @@ public class ReceptionCommands {
 	}
 	
 	public void sendInitNonce() throws Exception {
-		byte[] nonce = new byte[8];
+		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
 		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_RECEPTION, CMD_REC_INIT, 0x00, 0x00, nonce, 64)
@@ -53,13 +54,15 @@ public class ReceptionCommands {
 			throw new Exception("Got invalid response");
 		}
 		byte[] buf = response.getData();
+		
+		// message is of the format <nonce>||<cardIDLength>||cardID
 		cardID = Arrays.copyOfRange(buf, 0, 2);
-		cardNonce = Arrays.copyOfRange(buf, 2, 10);
-		byte[] signature = Arrays.copyOfRange(buf, 10, buf.length);
+		cardNonce = Arrays.copyOfRange(buf, 2, 2+NONCE_LENGTH);
+		byte[] signature = Arrays.copyOfRange(buf, NONCE_LENGTH+2, buf.length);
 		
 		Log.info("Card ID: "+Conversions.bytesToHex(cardID));
 		
-		cardKey = ECCKeyGenerator.loadPublicKey("keys/customers", Conversions.bytesToHex(cardID));
+		cardKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/customers", Conversions.bytesToHex(cardID));
 		boolean result = ECCSignature.verifySig(nonce, cardKey, signature);
 		if (!result) {
 			throw new Exception("Invalid signature from the card. Authentication aborted");
@@ -78,7 +81,7 @@ public class ReceptionCommands {
 		
 		byte[] signature = ECCSignature.signData(dataToSign.toByteArray(), companyKey.getPrivate());
 		
-		byte[] nonce = new byte[8];
+		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
 		
 		ByteArrayOutputStream dataToSend = new ByteArrayOutputStream();
@@ -98,18 +101,18 @@ public class ReceptionCommands {
 			new CommandAPDU(CLA_RECEPTION, command, 0x00, 0x00, dataToSend.toByteArray(), 255)
 		);
 		byte[] buf = response.getData();
-		cardNonce = Arrays.copyOfRange(buf, 0, 8);
+		cardNonce = Arrays.copyOfRange(buf, 0, NONCE_LENGTH);
 		
 		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
 		dataToVerify.write(nonce);
 		byte[] result = null;
 		
-		if((short)buf[8]!=0){
-			result = Conversions.getChunk(buf, 8, 0);
+		if (buf[NONCE_LENGTH] != 0){
+			result = Conversions.getChunk(buf, NONCE_LENGTH, 0);
 			dataToVerify.write(result);
 		}
 		
-		byte[] cardSignature = Conversions.getChunk(buf, 8, 1);
+		byte[] cardSignature = Conversions.getChunk(buf, NONCE_LENGTH, 1);
 		
 		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, cardSignature);
 		if (!verified) {
@@ -127,13 +130,23 @@ public class ReceptionCommands {
 			sendCommand(CMD_REC_RESET_KM, null);
 	}
 	
-	public int checkInUseFlag() throws Exception{
-		byte[] inUseFlag = sendCommand(CMD_REC_CHECK_INUSE, null);
-		return  Conversions.bytesToInt(inUseFlag);
+	public boolean checkInUseFlag() throws Exception{
+		byte[] response = sendCommand(CMD_REC_CHECK_INUSE, null);
+		return (response[0] == (byte) 1);
 	}
 	
-	public void addVehicleCert(ECPublicKey publicVehicleKey) throws Exception{
-		sendCommand(CMD_REC_ADD_CERT, Conversions.encodePubKey(publicVehicleKey));
+	public void addVehicleCert(ECPublicKey publicVehicleKey) throws Exception {
+		short counter = 0;
+		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
+		dataToSign.write(Conversions.encodePubKey(publicVehicleKey));
+		dataToSign.write(Conversions.encodePubKey(cardKey));
+		dataToSign.write(counter);
+		
+		KeyPair companyKey = ECCKeyGenerator.loadKeys("keys/master", "company");
+		byte[] signature = ECCSignature.signData(dataToSign.toByteArray(), companyKey.getPrivate());
+
+		sendCommand(CMD_REC_ADD_CERT, signature);
+		sendCommand(CMD_REC_ADD_VEHICLE_PUB, Conversions.encodePubKey(publicVehicleKey));
 	}
 	
 	public void deleteVehicleCert() throws Exception{

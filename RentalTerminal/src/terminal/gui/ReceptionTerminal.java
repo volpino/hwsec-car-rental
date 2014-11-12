@@ -164,7 +164,7 @@ public class ReceptionTerminal extends JFrame {
 				if(commandsList.getSelectedItem().toString().equals(RESET_MILEAGE)){
 					try {
 						receptionCmds.resetKilometers();
-						Log.info("Kilometers on card reseted");
+						Log.info("Kilometers on card were reset");
 					} catch (Exception e) {
 						Log.error("Could not reset kilometers");
 						e.printStackTrace();
@@ -172,7 +172,7 @@ public class ReceptionTerminal extends JFrame {
 				}
 				if(commandsList.getSelectedItem().toString().equals(CHECK_INUSE)){
 					try {
-						int inUseFlag = receptionCmds.checkInUseFlag();
+						boolean inUseFlag = receptionCmds.checkInUseFlag();
 						Log.info("InUseFlag on card is set to: "+ inUseFlag);
 					} catch (Exception e) {
 						Log.error("Could not check inUseFlag");
@@ -183,18 +183,18 @@ public class ReceptionTerminal extends JFrame {
 					try {
 						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", "car0");
 						receptionCmds.addVehicleCert(key);
-						Log.info("Car public-key now stored on card");
+						Log.info("The card is now associated with the vehicle");
 					} catch (Exception e) {
-						Log.error("Could not store car public-key");
+						Log.error("Could not associate card with vehicle");
 						e.printStackTrace();
 					}
 				}
 				if(commandsList.getSelectedItem().toString().equals(REMOVE_VEHICLE)){
 					try {
 						receptionCmds.deleteVehicleCert();
-						Log.info("Car key now removed from card");
+						Log.info("Vehicle de-associated with card");
 					} catch (Exception e) {
-						Log.error("Could not remove car key from card");
+						Log.error("Could not de-associate vehicle from card");
 						e.printStackTrace();
 					}
 				}

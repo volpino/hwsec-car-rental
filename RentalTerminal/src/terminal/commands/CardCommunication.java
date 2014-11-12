@@ -32,7 +32,7 @@ public class CardCommunication {
 	}
 	
 	public ResponseAPDU sendCommandAPDU(CommandAPDU command) {
-		Log.info("Sending: " + command);
+		Log.debug("Sending: " + command);
 		ResponseAPDU response = null;
 		try {
 			response = applet.transmit(command);
@@ -41,8 +41,8 @@ public class CardCommunication {
 			e.printStackTrace();
 			return null;
 		}
-		Log.info("Response: " + response);
-		Log.info("Response data: " + Arrays.toString(response.getData()));
+		Log.debug("Response: " + response);
+		Log.debug("Response data: " + Arrays.toString(response.getData()));
 		return response;
 	}
 	
@@ -55,11 +55,11 @@ public class CardCommunication {
     	    	try {
     	    		cs = ct.list(CardTerminals.State.CARD_PRESENT);
     	    	} catch (Exception e) {
-    	    		Log.info("No readers available.");
+    	    		Log.error("No readers available.");
     	    		return;
     	    	}
     	    	if (cs.isEmpty()) {
-    	    		Log.info("No terminals with a card found.");
+    	    		Log.error("No terminals with a card found.");
     	    		return;
     	    	}
     	    	
@@ -73,7 +73,7 @@ public class CardCommunication {
 										// select applet.
 										applet = card.getBasicChannel();
 										
-										Log.info("Selecting application");
+										Log.debug("Selecting application");
 										ResponseAPDU resp = applet.transmit(SELECT_APDU);
 
 										if (resp.getSW() != RESP_OK) {
