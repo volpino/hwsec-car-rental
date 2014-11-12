@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream;
 import java.security.KeyPair;
 import java.security.PublicKey;
 import java.security.SecureRandom;
+import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 
 import javax.smartcardio.CommandAPDU;
@@ -74,6 +75,7 @@ public class ReceptionCommands {
 		dataToSign.write(command);
 		if(payload!=null)
 			dataToSign.write(payload);
+		
 		byte[] signature = ECCSignature.signData(dataToSign.toByteArray(), companyKey.getPrivate());
 		
 		byte[] nonce = new byte[8];
@@ -82,6 +84,7 @@ public class ReceptionCommands {
 		ByteArrayOutputStream dataToSend = new ByteArrayOutputStream();
 		dataToSend.write(nonce);
 		if(payload!=null){
+			Log.info("Payload length: "+payload.length);
 			dataToSend.write(payload.length);
 			dataToSend.write(payload);
 		}
@@ -127,5 +130,13 @@ public class ReceptionCommands {
 	public int checkInUseFlag() throws Exception{
 		byte[] inUseFlag = sendCommand(CMD_REC_CHECK_INUSE, null);
 		return  Conversions.bytesToInt(inUseFlag);
+	}
+	
+	public void addVehicleCert(ECPublicKey publicVehicleKey) throws Exception{
+		sendCommand(CMD_REC_ADD_CERT, Conversions.encodePubKey(publicVehicleKey));
+	}
+	
+	public void deleteVehicleCert() throws Exception{
+		sendCommand(CMD_REC_DEL_CERT, null);
 	}
 }

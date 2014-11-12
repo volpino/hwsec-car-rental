@@ -23,6 +23,7 @@ import terminal.crypto.ECCKeyGenerator;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.security.interfaces.ECPublicKey;
 
 public class ReceptionTerminal extends JFrame {
 	private static final long serialVersionUID = -3660099088414835331L;
@@ -105,8 +106,8 @@ public class ReceptionTerminal extends JFrame {
     private JPanel createCommandsPanel() {        
         // Possible operations
         final String CHECK_INUSE = "Check InUse flag";
-        String ADD_VEHICLE = "Add certificate for vehicle";
-        String REMOVE_VEHICLE = "Remove certificate from card";
+        final String ADD_VEHICLE = "Add certificate for vehicle";
+        final String REMOVE_VEHICLE = "Remove certificate from card";
         final String GET_MILEAGE = "Get mileage counting";
         final String RESET_MILEAGE = "Reset mileage counting";
 
@@ -175,6 +176,25 @@ public class ReceptionTerminal extends JFrame {
 						Log.info("InUseFlag on card is set to: "+ inUseFlag);
 					} catch (Exception e) {
 						Log.error("Could not check inUseFlag");
+						e.printStackTrace();
+					}
+				}
+				if(commandsList.getSelectedItem().toString().equals(ADD_VEHICLE)){
+					try {
+						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", "car0");
+						receptionCmds.addVehicleCert(key);
+						Log.info("Car public-key now stored on card");
+					} catch (Exception e) {
+						Log.error("Could not store car public-key");
+						e.printStackTrace();
+					}
+				}
+				if(commandsList.getSelectedItem().toString().equals(REMOVE_VEHICLE)){
+					try {
+						receptionCmds.deleteVehicleCert();
+						Log.info("Car key now removed from card");
+					} catch (Exception e) {
+						Log.error("Could not remove car key from card");
 						e.printStackTrace();
 					}
 				}
