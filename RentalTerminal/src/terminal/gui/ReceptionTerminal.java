@@ -153,7 +153,6 @@ public class ReceptionTerminal extends JFrame {
         launchCommand.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				Log.info("Pressed " + commandsList.getSelectedItem());
 				if (commandsList.getSelectedItem().toString().equals(GET_MILEAGE)) {
 					try {
 						int kilometerOnCard = receptionCmds.getKilometers();
