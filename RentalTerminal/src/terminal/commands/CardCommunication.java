@@ -20,11 +20,17 @@ public class CardCommunication {
 	static final CommandAPDU SELECT_APDU = new CommandAPDU((byte) 0x00, (byte) 0xA4, (byte) 0x04, (byte) 0x00, APPLET_AID);
 	static final int RESP_OK = 0x9000;
 	
+	TerminalInterface terminal = null;
     CardChannel applet;
     boolean ready = false;
 	
 	public CardCommunication() {
         (new CardThread()).start();		
+	}
+	
+	public CardCommunication(TerminalInterface t) {
+		terminal = t;
+        (new CardThread()).start();
 	}
 	
 	public boolean isReady() {
@@ -84,13 +90,17 @@ public class CardCommunication {
 										// now we are ready
 										ready = true;
 										Log.info("Card is ready!");
+										if (terminal != null)
+											terminal.cardInserted();
 										
 										// wait for the card to be removed
 										while (c.isCardPresent());
 										
 										// card has been removed!
 										ready = false;
-
+										if (terminal != null)
+											terminal.cardRemoved();
+										
 										break;
 									} catch (Exception e) {
 										Log.error("Card does not contain applet!");

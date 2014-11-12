@@ -19,6 +19,7 @@ import javax.swing.JFrame;
 import terminal.commands.CardCommunication;
 import terminal.commands.PersonalizationCommands;
 import terminal.commands.ReceptionCommands;
+import terminal.commands.TerminalInterface;
 import terminal.utils.Log;
 import terminal.crypto.ECCKeyGenerator;
 
@@ -26,16 +27,20 @@ import java.awt.*;
 import java.awt.event.*;
 import java.security.interfaces.ECPublicKey;
 
-public class ReceptionTerminal extends JFrame {
+public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	private static final long serialVersionUID = -3660099088414835331L;
 
 	static final String TITLE = "ReceptionTerminal";
+	
+	JComboBox commandsList;
+	JButton authenticate;
+	JButton launchCommand;
 	
 	private CardCommunication comm;
 	JFrame frame = this;
         
     public ReceptionTerminal() {
-    	comm = new CardCommunication();
+    	comm = new CardCommunication(this);
     	initUI();
     }
     
@@ -115,16 +120,18 @@ public class ReceptionTerminal extends JFrame {
 
         String[] commands = {CHECK_INUSE, ADD_VEHICLE, REMOVE_VEHICLE, GET_MILEAGE, RESET_MILEAGE};
         
-        final JComboBox commandsList = new JComboBox(commands);
+        commandsList = new JComboBox(commands);
 
         JPanel cmdBox = new JPanel();
         cmdBox.setLayout(new BoxLayout(cmdBox, BoxLayout.X_AXIS));
       
-        final JButton authenticate = new JButton("Authenticate");
-        final JButton launchCommand = new JButton("Launch command");
+        authenticate = new JButton("Authenticate");
+        launchCommand = new JButton("Launch command");
+
         launchCommand.setEnabled(false);
         commandsList.setEnabled(false);
-
+        authenticate.setEnabled(false);
+        
         cmdBox.add(authenticate);
         cmdBox.add(Box.createRigidArea(new Dimension(40, 0)));
         
@@ -228,6 +235,20 @@ public class ReceptionTerminal extends JFrame {
         // pane.add(launchCommand, BorderLayout.PAGE_END);
         return pane;
     }
+    
+	@Override
+	public void cardInserted() {
+		launchCommand.setEnabled(false);
+        commandsList.setEnabled(false);
+        authenticate.setEnabled(true);
+	}
+
+	@Override
+	public void cardRemoved() {
+		launchCommand.setEnabled(false);
+        commandsList.setEnabled(false);
+        authenticate.setEnabled(false);
+	}
 
     public static void main(String[] args) {
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
