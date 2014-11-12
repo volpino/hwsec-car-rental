@@ -33,6 +33,7 @@ public class CardCommunication {
 	
 	public ResponseAPDU sendCommandAPDU(CommandAPDU command) {
 		Log.debug("Sending: " + command);
+		Log.debug("Sending data: " + Arrays.toString(command.getData()));
 		ResponseAPDU response = null;
 		try {
 			response = applet.transmit(command);

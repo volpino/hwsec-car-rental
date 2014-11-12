@@ -152,7 +152,7 @@ public class ReceptionTerminal extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				Log.info("Pressed " + commandsList.getSelectedItem());
-				if(commandsList.getSelectedItem().toString().equals(GET_MILEAGE)){
+				if (commandsList.getSelectedItem().toString().equals(GET_MILEAGE)){
 					try {
 						int kilometerOnCard = receptionCmds.getKilometers();
 						Log.info("Read out "+kilometerOnCard+" driven kilometers.");
@@ -161,7 +161,7 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if(commandsList.getSelectedItem().toString().equals(RESET_MILEAGE)){
+				if (commandsList.getSelectedItem().toString().equals(RESET_MILEAGE)){
 					try {
 						receptionCmds.resetKilometers();
 						Log.info("Kilometers on card were reset");
@@ -170,7 +170,7 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if(commandsList.getSelectedItem().toString().equals(CHECK_INUSE)){
+				if (commandsList.getSelectedItem().toString().equals(CHECK_INUSE)){
 					try {
 						boolean inUseFlag = receptionCmds.checkInUseFlag();
 						Log.info("InUseFlag on card is set to: "+ inUseFlag);
@@ -179,7 +179,7 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if(commandsList.getSelectedItem().toString().equals(ADD_VEHICLE)){
+				if (commandsList.getSelectedItem().toString().equals(ADD_VEHICLE)){
 					try {
 						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", "car0");
 						receptionCmds.addVehicleCert(key);
@@ -189,7 +189,7 @@ public class ReceptionTerminal extends JFrame {
 						e.printStackTrace();
 					}
 				}
-				if(commandsList.getSelectedItem().toString().equals(REMOVE_VEHICLE)){
+				if (commandsList.getSelectedItem().toString().equals(REMOVE_VEHICLE)){
 					try {
 						receptionCmds.deleteVehicleCert();
 						Log.info("Vehicle de-associated with card");

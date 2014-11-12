@@ -11,6 +11,7 @@ import javax.smartcardio.ResponseAPDU;
 
 import terminal.crypto.ECCKeyGenerator;
 import terminal.crypto.ECCSignature;
+import terminal.utils.CertCounter;
 import terminal.utils.Conversions;
 import terminal.utils.Log;
 
@@ -22,8 +23,7 @@ public class ReceptionCommands {
 	public static final byte CMD_REC_RESET_KM = (byte) 0x02;
 	public static final byte CMD_REC_CHECK_INUSE = (byte) 0x03;
 	public static final byte CMD_REC_ADD_CERT = (byte) 0x04;
-	public static final byte CMD_REC_ADD_VEHICLE_PUB = (byte) 0x05;
-	public static final byte CMD_REC_DEL_CERT = (byte) 0x06;
+	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
 
 	public static final short NONCE_LENGTH = 8;
 	
@@ -71,13 +71,16 @@ public class ReceptionCommands {
 		cardAuthenticated = true;
 	}
 	
-	byte[] sendCommand(byte command, byte[] payload) throws Exception {
+	byte[] sendCommand(byte command, byte[][] payload) throws Exception {
 		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
 		KeyPair companyKey = ECCKeyGenerator.loadKeys("keys/master", "company");
 		dataToSign.write(cardNonce);
 		dataToSign.write(command);
-		if(payload!=null)
-			dataToSign.write(payload);
+		if (payload != null) {
+			for (int i=0; i<payload.length; i++) {
+				dataToSign.write(payload[i]);
+			}
+		}
 		
 		byte[] signature = ECCSignature.signData(dataToSign.toByteArray(), companyKey.getPrivate());
 		
@@ -86,28 +89,30 @@ public class ReceptionCommands {
 		
 		ByteArrayOutputStream dataToSend = new ByteArrayOutputStream();
 		dataToSend.write(nonce);
-		if(payload!=null){
-			Log.info("Payload length: "+payload.length);
-			dataToSend.write(payload.length);
-			dataToSend.write(payload);
-		}
-		else
-			dataToSend.write(0);
-		
 		dataToSend.write(signature.length);
 		dataToSend.write(signature);
+		
+		if (payload != null) {
+			for (int i=0; i<payload.length; i++) {
+				dataToSend.write(payload[i].length);
+				dataToSend.write(payload[i]);
+			}
+		}
+		else {
+			dataToSend.write(0);
+		}
 		
 		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_RECEPTION, command, 0x00, 0x00, dataToSend.toByteArray(), 255)
 		);
 		byte[] buf = response.getData();
 		cardNonce = Arrays.copyOfRange(buf, 0, NONCE_LENGTH);
-		
+
 		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
 		dataToVerify.write(nonce);
 		byte[] result = null;
 		
-		if (buf[NONCE_LENGTH] != 0){
+		if (buf[NONCE_LENGTH] != 0) {
 			result = Conversions.getChunk(buf, NONCE_LENGTH, 0);
 			dataToVerify.write(result);
 		}
@@ -136,7 +141,7 @@ public class ReceptionCommands {
 	}
 	
 	public void addVehicleCert(ECPublicKey publicVehicleKey) throws Exception {
-		short counter = 0;
+		short counter = (short) CertCounter.getNewCounter();
 		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
 		dataToSign.write(Conversions.encodePubKey(publicVehicleKey));
 		dataToSign.write(Conversions.encodePubKey(cardKey));
@@ -145,8 +150,12 @@ public class ReceptionCommands {
 		KeyPair companyKey = ECCKeyGenerator.loadKeys("keys/master", "company");
 		byte[] signature = ECCSignature.signData(dataToSign.toByteArray(), companyKey.getPrivate());
 
-		sendCommand(CMD_REC_ADD_CERT, signature);
-		sendCommand(CMD_REC_ADD_VEHICLE_PUB, Conversions.encodePubKey(publicVehicleKey));
+		byte[][] data = new byte[3][];
+		data[0] = signature;
+		data[1] = Conversions.encodePubKey(publicVehicleKey);
+		data[2] = Conversions.short2bytes(counter);
+		
+		sendCommand(CMD_REC_ADD_CERT, data);
 	}
 	
 	public void deleteVehicleCert() throws Exception{

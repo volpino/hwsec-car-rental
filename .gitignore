@@ -48,3 +48,4 @@ local.properties
 *.iws
 
 RentalTerminal/keys/customers/*.pub
+*.counter

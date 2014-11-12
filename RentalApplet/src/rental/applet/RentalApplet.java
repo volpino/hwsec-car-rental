@@ -10,7 +10,6 @@ import javacard.framework.Applet;
 import javacard.framework.ISOException;
 import javacard.framework.JCSystem;
 import javacard.framework.Util;
-import javacard.security.CryptoException;
 import javacard.security.ECKey;
 import javacard.security.ECPrivateKey;
 import javacard.security.ECPublicKey;
@@ -40,17 +39,15 @@ public class RentalApplet extends Applet {
 	public static final byte CMD_REC_RESET_KM = (byte) 0x02;
 	public static final byte CMD_REC_CHECK_INUSE = (byte) 0x03;
 	public static final byte CMD_REC_ADD_CERT = (byte) 0x04;
-	public static final byte CMD_REC_ADD_VEHICLE_PUB = (byte) 0x05;
-	public static final byte CMD_REC_DEL_CERT = (byte) 0x06;
+	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
 	
 	public static final short NONCE_LENGTH = 8;
 
 	private short cardID = 0;
-	private short vehicleID = 1337;
 	private short kilometers = 9999;
+	private short certCounter = 0;
 	private boolean inUse = false; 
-	private boolean hasVehiclePub = false;
-	private boolean hasVehicleCert = false;
+	private boolean isAssociated = false;
 
 	private RandomData random;
 	
@@ -194,53 +191,38 @@ public class RentalApplet extends Applet {
 				case CMD_REC_RESET_KM:
 					verifyCommand(buf);
 					
-					// Set kilometer counter to 0
-					kilometers = 0;
+					kilometers = 0;  // Reset kilometer counter
 					
 					sendResponse(buf, apdu, null, (short)0);
 					break;
 				case CMD_REC_CHECK_INUSE:
 					verifyCommand(buf);
 					
-					tmp2[0] = (byte) (inUse ? 1 : 0);
+					tmp2[0] = (byte) (inUse ? 1 : 0);  // return inUse flag
 					
 					sendResponse(buf, apdu, tmp2, (short)1);
 					break;
 				case CMD_REC_ADD_CERT:
-					verifyCommand(buf);
+					verifyCommand(buf, (short) 3);
 										
-					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
 					Util.arrayCopy(buf, offset[0], vehicleCert, (short) 0, offset[1]);
-					hasVehicleCert = true;
 					
-					sendResponse(buf, apdu, null, (short)0);
-					break;
-				case CMD_REC_ADD_VEHICLE_PUB:
-					try {
-					verifyCommand(buf);
-					} catch (Exception e) { ISOException.throwIt((short) 0x9997); }
-				
-					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
-					try {
-						vehiclePubKey.setW(buf, offset[0], offset[1]);
-					} catch (Exception e) { ISOException.throwIt((short) 0x9998); }
-
-					try {
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 2);
+					vehiclePubKey.setW(buf, offset[0], offset[1]);
 					vehicleSignature.init(vehiclePubKey, Signature.MODE_VERIFY);
-					} catch (Exception e) { ISOException.throwIt((short) 0x9999); }
-					hasVehiclePub = true;
 					
-					try {
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 3);
+					certCounter = Util.getShort(buf, offset[0]);
+					
+					isAssociated = true;
+					
 					sendResponse(buf, apdu, null, (short)0);
-					} catch (Exception e) { ISOException.throwIt((short) 0x9996); }
-					break;					
+					break;				
 				case CMD_REC_DEL_CERT:
 					verifyCommand(buf);
 					
-					hasVehicleCert = false;
-					hasVehiclePub = false;
-					
-					// Delete Vehicle Key
+					isAssociated = false;
 					vehiclePubKey.clearKey();
 					Util.arrayFillNonAtomic(vehicleCert, (short) 0, (short) vehicleCert.length, (byte) 0);
 					
@@ -260,9 +242,10 @@ public class RentalApplet extends Applet {
 		short length = (short) (buf[base] & 0xFF);
 		for (short i=0; i<index; i++) {
 			base += length + 1;
+			length = (short) (buf[base] & 0xFF);
 		}
 		offset[0] = (short) (base + 1);
-		offset[1] = (short) (buf[base] & 0xFF);
+		offset[1] = length;
 	}
 	
 	void initKey(ECKey key) {
@@ -273,34 +256,40 @@ public class RentalApplet extends Applet {
 		key.setG(CURVE_G, (short)0, (short) CURVE_G.length);
 	}
 	
+	void verifyCommand(byte[] buf) {
+		verifyCommand(buf, (short) 0);
+	}
 	
-	void verifyCommand(byte[] buf) {		
+	void verifyCommand(byte[] buf, short arguments) {		
 		// save the terminal nonce in tmp1
-		Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short)0, (short)NONCE_LENGTH);
-		
-		// find payload
-		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
-		
+		Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
+
 		// use tmp2 as buffer for data to verify
 		byte[] dataToVerify = tmp2;
-		short lengthToVerify = (short) (NONCE_LENGTH + 1 + offset[1]);
-		
+		short lengthToVerify = (short) (NONCE_LENGTH + 1);
+
 		// Copy old card nonce
-		Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) NONCE_LENGTH);
-		
+		Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) NONCE_LENGTH);		
 		dataToVerify[NONCE_LENGTH] = buf[ISO7816.OFFSET_INS];  // Copy command
 
-		if (offset[1] != (short)0) {  // if there is a payload in the command
-			Util.arrayCopy(
-				buf, (short)(offset[0]), dataToVerify, (short) (NONCE_LENGTH+1), offset[1]
-			);
+		// find payload
+		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
+		if (offset[1] != 0) {  // if there is a payload in the command
+			// get all the payload parameters in the verification buffer
+			for (short i=0; i<arguments; i++) {
+				findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) (1+i));
+				Util.arrayCopy(
+					buf, offset[0], dataToVerify, lengthToVerify, offset[1]
+				);
+				lengthToVerify += offset[1];
+			}
 		}
 
-		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
+		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
 		boolean verified = companySignature.verify(
 			dataToVerify, (short) 0, lengthToVerify, buf, offset[0], offset[1]
 		);
-
+		
 		if (!verified)
 			ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 	}
