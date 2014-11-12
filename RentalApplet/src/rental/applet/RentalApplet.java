@@ -377,18 +377,15 @@ public class RentalApplet extends Applet {
 		findOffset(buf, (short) (ISO7816.OFFSET_CDATA+8), (short) 0);
 		dataToVerify = JCSystem.makeTransientByteArray((short) (8+1+offset[1]), JCSystem.CLEAR_ON_RESET);
 
-		
-		
 		//Copy old card nonce
 		Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) 8);
 		//Copy command
 		dataToVerify[8] = command;
-		
-		//Copy payload
+
 		if(offset[1]!=(short)0){
 			Util.arrayCopy(buf, (short)(offset[0]), dataToVerify, (short) 9, offset[1]);
 		}
-		
+
 		findOffset(buf, (short) (8+ISO7816.OFFSET_CDATA), (short) 1);
 		return companySignature.verify(dataToVerify, (short) 0, (short) dataToVerify.length, buf, offset[0], offset[1]);
 
