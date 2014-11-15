@@ -1,4 +1,4 @@
-package terminal.commands;
+package terminal.gui;
 
 public interface TerminalInterface {
 	public void cardInserted();

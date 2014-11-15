@@ -25,12 +25,14 @@ import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.border.Border;
 
+import terminal.commands.CardCommunication;
+import terminal.crypto.ECCKeyGenerator;
 import terminal.utils.Log;
 
 
 // TODO Optional: Add option to simulate failure of kilometer writing
 
-public class CarTerminal extends JFrame {
+public class CarTerminal extends JFrame implements TerminalInterface {
 
 	private static final long serialVersionUID = -3770099088414835331L;
 	static final String TITLE = "CarTerminal";
@@ -38,14 +40,17 @@ public class CarTerminal extends JFrame {
 	private boolean driving = false;
 	JButton startButton;
 	JButton stopButton;
-	JTextField kilometer;
+	JTextField kilometerField;
+	JComboBox carsList;
 
 	int driveKilometers = 0;
 	private KeyPair carKeyPair;
 
 	JTextArea logArea;
+	private CardCommunication comm;
 
 	public CarTerminal() {
+    	comm = new CardCommunication(this);
 		initUI();
 	}
 
@@ -60,11 +65,11 @@ public class CarTerminal extends JFrame {
         logArea.setEditable(false);
         JScrollPane scrollLogArea = new JScrollPane(logArea);
         scrollLogArea.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        scrollLogArea.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+        scrollLogArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 		
         // Select car combobox
         JPanel selectCarBox = new JPanel();
-        final JComboBox carsList = new JComboBox(new String[] {"car0", "car1", "car2", "car3", "car4", "car5"});
+        carsList = new JComboBox(new String[] {"car0", "car1", "car2", "car3", "car4", "car5"});
         selectCarBox.setLayout(new BoxLayout(selectCarBox, BoxLayout.X_AXIS));
         selectCarBox.add(new JLabel("Select car:"));
         selectCarBox.add(Box.createRigidArea(new Dimension(10, 0)));
@@ -75,14 +80,14 @@ public class CarTerminal extends JFrame {
         // Define main commands
         JPanel mainCmdPanel = new JPanel();
         startButton = new JButton("Start Car");
-        kilometer = new JTextField(8);
+        kilometerField = new JTextField(8);
         stopButton = new JButton("Stop Car");
         stopButton.setEnabled(false);
                 
         // Add components to layout
 		mainCmdPanel.add(startButton);
 		mainCmdPanel.add(new JLabel("Driven kilometers:"));
-		mainCmdPanel.add(kilometer);
+		mainCmdPanel.add(kilometerField);
 		mainCmdPanel.add(stopButton);
 		
         JPanel panel = new JPanel(new BorderLayout());
@@ -96,54 +101,40 @@ public class CarTerminal extends JFrame {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				try {
-					driveKilometers = Integer.parseInt(kilometer.getText());
-					
-					if (isKilometerFieldValid(driveKilometers)) {
-						driving = true;
-						stopButton.setEnabled(true);
-						startButton.setEnabled(false);
-						kilometer.setEnabled(false);
-						
-						Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-						carKeyPair = terminal.crypto.ECCKeyGenerator.loadKeys("keys/cars", carsList.getSelectedItem().toString());
-						
-						Log.info("Loaded private key for " + carsList.getSelectedItem().toString() + ": " + carKeyPair.getPrivate());
-						carsList.setEnabled(false);
-						
-						Log.info("Driving " + driveKilometers + " kilometers");
-					}
-					else {
-						Log.info("Invalid value for kilometer");
-						driveKilometers = 0;
-					}
-				} catch (NoSuchAlgorithmException e) {
-					Log.info("Invalid Algorithm for Key");
-					e.printStackTrace();
-					driveKilometers = 0;
-				} catch (InvalidKeySpecException e) {
-					Log.info("Invalid Key Specs");
-					e.printStackTrace();
-					driveKilometers = 0;
-				} catch (IOException e) {
+					carKeyPair = ECCKeyGenerator.loadKeys("keys/cars", carsList.getSelectedItem().toString());
+				} catch (Exception e) {
+					Log.error(e.getMessage());
 					e.printStackTrace();
 				}
-				catch(NumberFormatException e) {
-					Log.info("Invalid value for kilometer");
-					e.printStackTrace();
-					driveKilometers = 0;
-				}
+
+				driving = true;
+				carsList.setEnabled(false);
+				startButton.setEnabled(false);
+				stopButton.setEnabled(true);
+				kilometerField.setEnabled(true);
 			}
 		});
 		
 		stopButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				driving = false;
-				stopButton.setEnabled(false);
-				startButton.setEnabled(true);
-				kilometer.setEnabled(true);
-				carsList.setEnabled(true);
-				Log.info("Pressed " + action.getActionCommand());
+				try {
+					driveKilometers = Integer.parseInt(kilometerField.getText());
+				} catch (NumberFormatException e) {
+					driveKilometers = 0;
+				}
+				
+				if (isKilometerFieldValid(driveKilometers)) {
+					Log.info(driveKilometers + " kilometers driven");
+					driving = false;
+					carsList.setEnabled(true);					
+					startButton.setEnabled(true);
+					stopButton.setEnabled(false);
+					kilometerField.setEnabled(false);
+				}
+				else {
+					Log.info("Invalid value for kilometer");
+				}
 			}
 		});
 		
@@ -159,6 +150,30 @@ public class CarTerminal extends JFrame {
 			return false;
 	}
 
+	@Override
+	public void cardInserted() {
+		if (driving) {
+			carsList.setEnabled(false);
+			startButton.setEnabled(false);
+			stopButton.setEnabled(true);
+			kilometerField.setEnabled(true);
+		}
+		else {
+			carsList.setEnabled(true);
+			startButton.setEnabled(true);
+			stopButton.setEnabled(false);
+			kilometerField.setEnabled(false);
+		}
+	}
+
+	@Override
+	public void cardRemoved() {
+		carsList.setEnabled(false);
+		startButton.setEnabled(false);
+		stopButton.setEnabled(false);
+		kilometerField.setEnabled(false);
+	}
+	
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			@Override

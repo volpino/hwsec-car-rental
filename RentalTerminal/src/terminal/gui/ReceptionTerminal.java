@@ -19,7 +19,6 @@ import javax.swing.JFrame;
 import terminal.commands.CardCommunication;
 import terminal.commands.PersonalizationCommands;
 import terminal.commands.ReceptionCommands;
-import terminal.commands.TerminalInterface;
 import terminal.utils.Log;
 import terminal.crypto.ECCKeyGenerator;
 
@@ -33,7 +32,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	static final String TITLE = "ReceptionTerminal";
 	
 	JComboBox commandsList;
-	JButton authenticate;
+	JButton initialize;
 	JButton launchCommand;
 	JButton cardSetup;
 	
@@ -127,18 +126,18 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         JPanel cmdBox = new JPanel();
         cmdBox.setLayout(new BoxLayout(cmdBox, BoxLayout.X_AXIS));
       
-        authenticate = new JButton("Authenticate");
+        initialize = new JButton("Initialize");
         launchCommand = new JButton("Launch command");
 
         launchCommand.setEnabled(false);
         commandsList.setEnabled(false);
-        authenticate.setEnabled(false);
+        initialize.setEnabled(false);
         
-        cmdBox.add(authenticate);
+        cmdBox.add(initialize);
         cmdBox.add(Box.createRigidArea(new Dimension(40, 0)));
         
 		final ReceptionCommands receptionCmds = new ReceptionCommands(comm);
-        authenticate.addActionListener(new ActionListener() {
+        initialize.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				try {
@@ -151,7 +150,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 				
 		        launchCommand.setEnabled(true);
 		        commandsList.setEnabled(true);
-		        authenticate.setEnabled(false);
+		        initialize.setEnabled(false);
 			}
 		});
         
@@ -242,7 +241,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	public void cardInserted() {
 		launchCommand.setEnabled(false);
         commandsList.setEnabled(false);
-        authenticate.setEnabled(true);
+        initialize.setEnabled(true);
         cardSetup.setEnabled(true);
 	}
 
@@ -250,7 +249,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	public void cardRemoved() {
 		launchCommand.setEnabled(false);
         commandsList.setEnabled(false);
-        authenticate.setEnabled(false);
+        initialize.setEnabled(false);
         cardSetup.setEnabled(false);
 	}
 
