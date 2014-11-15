@@ -6,12 +6,24 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
+import java.security.spec.ECParameterSpec;
+import java.security.spec.ECPoint;
+import java.security.spec.ECPublicKeySpec;
+import java.security.spec.EllipticCurve;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
-public class ECCKeyGenerator {
+import org.bouncycastle.jcajce.provider.asymmetric.util.EC5Util;
+import org.bouncycastle.jce.ECNamedCurveTable;
+import org.bouncycastle.jce.ECPointUtil;
+import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
+import org.bouncycastle.math.ec.ECCurve;
 
+
+public class ECCKeyGenerator {
+	public final static String CURVE = "c2pnb163v1";
+	
 	KeyPairGenerator g;
 	KeyPair pair;
 	
@@ -23,10 +35,10 @@ public class ECCKeyGenerator {
 	 * Define a generator which produce a "prime192v1", size: 192bit
 	 */
 	public ECCKeyGenerator() throws Exception {		
-			ECGenParameterSpec ecGenSpec = new ECGenParameterSpec("c2pnb163v1");
-			g = KeyPairGenerator.getInstance("ECDSA", "BC");
-			g.initialize(ecGenSpec, new SecureRandom());
-			pair = g.generateKeyPair();
+		ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE);
+		g = KeyPairGenerator.getInstance("ECDSA", "BC");
+		g.initialize(ecGenSpec, new SecureRandom());
+		pair = g.generateKeyPair();
 	}
 
 	public KeyPair getKeyPair() {
@@ -84,6 +96,18 @@ public class ECCKeyGenerator {
 		X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedPublicKey);
 		PublicKey publicKey = keyFactory.generatePublic(publicKeySpec);
 		return publicKey;
+	}
+	
+	// Taken from https://bitcointalk.org/index.php?topic=2899.0
+	public static PublicKey decodeKey(byte[] encodedW) throws InvalidKeySpecException, NoSuchAlgorithmException, NoSuchProviderException {
+	    ECNamedCurveParameterSpec params = ECNamedCurveTable.getParameterSpec(CURVE);
+	    KeyFactory keyfactory = KeyFactory.getInstance("ECDSA", "BC");
+	    ECCurve curve = params.getCurve();
+	    EllipticCurve ellipticCurve = EC5Util.convertCurve(curve, params.getSeed());
+	    ECPoint point = ECPointUtil.decodePoint(ellipticCurve, encodedW);
+	    ECParameterSpec params2 = EC5Util.convertSpec(ellipticCurve, params);
+	    ECPublicKeySpec keySpec = new java.security.spec.ECPublicKeySpec(point, params2);
+	    return keyfactory.generatePublic(keySpec);
 	}
 	
 	public static KeyPair loadKeys(String path, String keyName) throws IOException, NoSuchAlgorithmException,
