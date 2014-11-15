@@ -94,13 +94,15 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 		startButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
+				String carID = carsList.getSelectedItem().toString();
 				try {
-					carKeyPair = ECCKeyGenerator.loadKeys("keys/cars", carsList.getSelectedItem().toString());
+					VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
+					vehicleCmds.startVehicle();
 				} catch (Exception e) {
 					Log.error(e.getMessage());
 					e.printStackTrace();
+					return;
 				}
-
 				driving = true;
 				carsList.setEnabled(false);
 				startButton.setEnabled(false);
@@ -112,6 +114,8 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 		stopButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
+				String carID = carsList.getSelectedItem().toString();
+
 				try {
 					driveKilometers = Integer.parseInt(kilometerField.getText());
 				} catch (NumberFormatException e) {
@@ -119,7 +123,14 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 				}
 				
 				if (isKilometerFieldValid(driveKilometers)) {
-					Log.info(driveKilometers + " kilometers driven");
+					try {
+						VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
+						vehicleCmds.stopVehicle(driveKilometers);
+					} catch (Exception e) {
+						Log.error(e.getMessage());
+						e.printStackTrace();
+						return;
+					}
 					driving = false;
 					carsList.setEnabled(true);					
 					startButton.setEnabled(true);

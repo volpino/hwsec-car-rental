@@ -41,6 +41,12 @@ public class RentalApplet extends Applet {
 	public static final byte CMD_REC_ADD_CERT = (byte) 0x04;
 	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
 	
+	public static final byte CLA_VEHICLE = (byte) 0xB2;
+	public static final byte CMD_VEH_INIT = (byte) 0x00;
+	public static final byte CMD_VEH_AUTHCARD = (byte) 0x01;
+	public static final byte CMD_VEH_AUTHVEHICLE = (byte) 0x02;
+	public static final byte CMD_VEH_SAVEKM = (byte) 0x03;
+	
 	public static final short NONCE_LENGTH = 8;
 
 	private short cardID = 0;
@@ -49,6 +55,7 @@ public class RentalApplet extends Applet {
 	private boolean inUse = false; 
 	private boolean isAssociated = false;
 	private boolean[] receptionInitialized;
+	private byte[] vehicleInitialized;
 
 	private RandomData random;
 	
@@ -66,6 +73,7 @@ public class RentalApplet extends Applet {
 	byte[] tmp2;
 	
 	byte[] vehicleCert;
+	short vehicleCertLength;
 	
 	ECPrivateKey cardPrivKey;
 	ECPublicKey cardPubKey;
@@ -90,6 +98,7 @@ public class RentalApplet extends Applet {
 		tmp1 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
 		tmp2 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
 		receptionInitialized = JCSystem.makeTransientBooleanArray((short) 1, JCSystem.CLEAR_ON_RESET);
+		vehicleInitialized = JCSystem.makeTransientByteArray((short) 1, JCSystem.CLEAR_ON_RESET);
 		
 		// vehicle certificate array
 		vehicleCert = new byte[64];
@@ -241,6 +250,161 @@ public class RentalApplet extends Applet {
 					Util.arrayFillNonAtomic(vehicleCert, (short) 0, (short) vehicleCert.length, (byte) 0);
 					
 					sendResponse(buf, apdu, null, (short)0);
+					break;
+				default:
+					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
+				}
+			}
+			else if (buf[ISO7816.OFFSET_CLA] == CLA_VEHICLE) {
+				short le;
+				short len;
+				short sigLen;
+				boolean verified;
+				
+				// Return an error if the card is not associated to a vehicle
+				if (!isAssociated) {
+					ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
+				}
+				switch (buf[ISO7816.OFFSET_INS]) {
+				case CMD_VEH_INIT:
+					vehicleInitialized[0] = 1;
+					
+					// Put card public key in the buffer (length + actual data)
+					len = cardPubKey.getW(buf, (short) 1);
+					buf[0] = (byte) len;
+					len++;
+					
+					// Put certCounter in the buffer
+					buf[len] = 2;
+					len++;
+					Util.setShort(buf, len, certCounter);
+					len += 2;
+					
+					// Put vehicleCert in the buffer
+					buf[len] = (byte) vehicleCertLength;
+					Util.arrayCopy(vehicleCert, (short) 0, buf, (short) (len+1), vehicleCertLength);
+					len += 1 + vehicleCertLength;
+					
+					// send it!
+					le = apdu.setOutgoing();
+					if (le < len) {
+						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					}
+					apdu.setOutgoingLength(len);					 
+					apdu.sendBytes((short)0, len);
+					break;
+				case CMD_VEH_AUTHCARD:
+					// allow performing commands only in order
+					if (vehicleInitialized[0] != 1)
+						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
+					vehicleInitialized[0] = 2;
+					
+					// save the terminal nonce in tmp1
+					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
+					// copy also the vehicle public key in tmp1
+					short vehiclePubKeyLength = vehiclePubKey.getW(tmp1, NONCE_LENGTH);
+					
+					// Generate and store new card nonce
+					random.generateData(buf, (short) 0, (short) NONCE_LENGTH);
+					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short) NONCE_LENGTH);
+					
+					// Sign terminal nonce || vehicle public key
+					sigLen = cardSignature.sign(
+						tmp1, (short)0, (short) (NONCE_LENGTH+vehiclePubKeyLength),
+						buf, (short) (NONCE_LENGTH)
+					);
+					len = (short) (sigLen + NONCE_LENGTH);
+					
+					// send all the things
+					le = apdu.setOutgoing();
+					if (le < len) {
+						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					}
+					apdu.setOutgoingLength(len);					 
+					apdu.sendBytes((short)0, len);
+					break;
+				case CMD_VEH_AUTHVEHICLE:
+					// allow performing commands only in order
+					if (vehicleInitialized[0] != 2)
+						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
+					vehicleInitialized[0] = 3;
+					
+					// save the terminal nonce in tmp1
+					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
+					
+					// get signature
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
+					verified = vehicleSignature.verify(
+						nonce, (short) 0, NONCE_LENGTH, buf, offset[0], offset[1]
+					);
+					if (!verified) {
+						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+					}
+					
+					// Set inUse at first
+					inUse = true;
+					
+					// Generate and store new card nonce
+					random.generateData(buf, (short) 0, (short) NONCE_LENGTH);
+					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short) NONCE_LENGTH);
+					
+					// Sign terminal nonce
+					sigLen = cardSignature.sign(tmp1, (short)0, (short) NONCE_LENGTH, buf, (short) NONCE_LENGTH);
+					
+					// send all the things
+					len = (short) (sigLen + NONCE_LENGTH);
+					le = apdu.setOutgoing();
+					if (le < len) {
+						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					}
+					apdu.setOutgoingLength(len);					 
+					apdu.sendBytes((short)0, len);
+					break;
+				case CMD_VEH_SAVEKM:
+					// allow performing commands only in order
+					if (vehicleInitialized[0] != 3)
+						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
+					
+					// save the terminal nonce in tmp1
+					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
+					
+					// get driven kilometers
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
+					short kmToAdd = Util.getShort(buf, offset[0]);
+					
+					byte[] dataToVerify = tmp2;
+					Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) NONCE_LENGTH);
+					Util.setShort(dataToVerify, NONCE_LENGTH, kmToAdd);
+					
+					// get signature of nonce||kilometers
+					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
+					verified = vehicleSignature.verify(
+						dataToVerify, (short) 0, (short) (NONCE_LENGTH+2),
+						buf, offset[0], offset[1]
+					);
+					if (!verified) {
+						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
+					}
+					
+					// Check for overflow
+					if (((short) (kilometers + kmToAdd)) > kilometers) {
+						kilometers += kmToAdd; 
+					} else {
+						ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
+					}
+					inUse = false;
+					
+					// Sign terminal nonce
+					sigLen = cardSignature.sign(tmp1, (short)0, (short) NONCE_LENGTH, buf, (short) 0);
+					
+					// send all the things
+					len = sigLen;
+					le = apdu.setOutgoing();
+					if (le < len) {
+						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+					}
+					apdu.setOutgoingLength(len);					 
+					apdu.sendBytes((short)0, len);
 					break;
 				default:
 					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
