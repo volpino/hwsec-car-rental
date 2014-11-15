@@ -7,6 +7,7 @@ import java.security.interfaces.ECPrivateKey;
 import java.security.interfaces.ECPublicKey;
 
 import javax.smartcardio.CommandAPDU;
+import javax.smartcardio.ResponseAPDU;
 
 import terminal.crypto.ECCKeyGenerator;
 import terminal.utils.Conversions;
@@ -29,68 +30,74 @@ public class PersonalizationCommands {
 		random = new SecureRandom();
 	}
 	
-	void setCardID() {
+	void setCardID() throws Exception {
 		cardID = new byte[2];
 		random.nextBytes(cardID);
-		comm.sendCommandAPDU(
+		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_CARDID, 0x00, 0x00, cardID, 2)
 		);
+		if (response.getSW() != 0x9000) {
+			throw new Exception("Got invalid response. Is the card already issued?");
+		}
 		Log.info("Card ID set to " + Conversions.bytesToHex(cardID));
 	}
 	
-	void setCardKeyPair() {
+	void setCardKeyPair() throws Exception {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
-		try {
-			KeyPair pair = ECCKeyGenerator.generateKeys();
-			ECCKeyGenerator.savePublicKey(pair, "keys/customers", Conversions.bytesToHex(cardID));
-			
-			ECPublicKey pub = (ECPublicKey) pair.getPublic();
-			ECPrivateKey priv = (ECPrivateKey) pair.getPrivate();
+		KeyPair pair = ECCKeyGenerator.generateKeys();
+		ECCKeyGenerator.savePublicKey(pair, "keys/customers", Conversions.bytesToHex(cardID));
+		
+		ECPublicKey pub = (ECPublicKey) pair.getPublic();
+		ECPrivateKey priv = (ECPrivateKey) pair.getPrivate();
 
-			byte[] pubEncoded = Conversions.encodePubKey(pub);
-			data.write(pubEncoded.length);
-			data.write(pubEncoded);
-			
-			// private key
-			byte[] s = Conversions.padToFieldSize(priv.getS().toByteArray());
-			data.write(s.length);
-			data.write(s);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		comm.sendCommandAPDU(
+		byte[] pubEncoded = Conversions.encodePubKey(pub);
+		data.write(pubEncoded.length);
+		data.write(pubEncoded);
+		
+		// private key
+		byte[] s = Conversions.padToFieldSize(priv.getS().toByteArray());
+		data.write(s.length);
+		data.write(s);
+
+		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_CARDKEYS, 0x00, 0x00, data.toByteArray())
 		);
+		if (response.getSW() != 0x9000) {
+			throw new Exception("Got invalid response");
+		}
 		Log.info("Keypair generated and sent to the smartcard");
 	}
 	
-	void setCompanyPublicKey() {
+	void setCompanyPublicKey() throws Exception {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
-		try {
-			KeyPair pair = ECCKeyGenerator.loadKeys("keys/master", "company");			
-			ECPublicKey pub = (ECPublicKey) pair.getPublic();
-			byte[] pubEncoded = Conversions.encodePubKey(pub);
-			data.write(pubEncoded.length);
-			data.write(pubEncoded);	
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		comm.sendCommandAPDU(
+		KeyPair pair = ECCKeyGenerator.loadKeys("keys/master", "company");			
+		ECPublicKey pub = (ECPublicKey) pair.getPublic();
+		byte[] pubEncoded = Conversions.encodePubKey(pub);
+		data.write(pubEncoded.length);
+		data.write(pubEncoded);	
+		
+		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_COMPANYPUB, 0x00, 0x00, data.toByteArray())
 		);
+		if (response.getSW() != 0x9000) {
+			throw new Exception("Got invalid response");
+		}
 		Log.info("Company public key sent to the smartcard");
 	}
 	
-	void setRandomSeed() {
+	void setRandomSeed() throws Exception {
 		byte[] seed = new byte[8];
 		random.nextBytes(seed);
-		comm.sendCommandAPDU(
+		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_ISSUE, CMD_RANDSEED, 0x00, 0x00, seed)
 		);
+		if (response.getSW() != 0x9000) {
+			throw new Exception("Got invalid response");
+		}
 		Log.info("Random seed set");
 	}
 	
-	public void doIssuance() {
+	public void doIssuance() throws Exception {
 		setCardID();
 		setCardKeyPair();
 		setCompanyPublicKey();

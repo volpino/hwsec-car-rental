@@ -65,7 +65,7 @@ public class ReceptionCommands {
 		cardKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/customers", Conversions.bytesToHex(cardID));
 		boolean result = ECCSignature.verifySig(nonce, cardKey, signature);
 		if (!result) {
-			throw new Exception("Invalid signature from the card. Authentication aborted");
+			throw new SecurityException("Invalid signature from the card. Authentication aborted");
 		}
 		
 		cardAuthenticated = true;
@@ -121,7 +121,7 @@ public class ReceptionCommands {
 		
 		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, cardSignature);
 		if (!verified) {
-			throw new Exception("Invalid signature from the card. The result of the command is not valid");
+			throw new SecurityException("Invalid signature from the card. The result of the command is not valid");
 		}
 		return result;
 	}

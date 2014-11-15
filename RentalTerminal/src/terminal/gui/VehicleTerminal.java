@@ -5,11 +5,6 @@ import java.awt.Dimension;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.IOException;
-import java.security.KeyPair;
-import java.security.NoSuchAlgorithmException;
-import java.security.Security;
-import java.security.spec.InvalidKeySpecException;
 
 import javax.swing.BorderFactory;
 import javax.swing.Box;
@@ -26,7 +21,7 @@ import javax.swing.ScrollPaneConstants;
 import javax.swing.border.Border;
 
 import terminal.commands.CardCommunication;
-import terminal.crypto.ECCKeyGenerator;
+import terminal.commands.VehicleCommands;
 import terminal.utils.Log;
 
 
@@ -44,7 +39,6 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 	JComboBox carsList;
 
 	int driveKilometers = 0;
-	private KeyPair carKeyPair;
 
 	JTextArea logArea;
 	private CardCommunication comm;

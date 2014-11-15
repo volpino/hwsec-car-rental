@@ -109,8 +109,7 @@ public class ECCKeyGenerator {
 		System.out.println(pair.getPublic());
 	}
 	
-	// Testing purpose 
-	// NOTE remember in the GUI to catch and manage "File already exists" exception -- now it is overwritten
+	// Testing purposes
 	public static void main(String[] args) {
 		for (int i=0; i <= 5; i++) {
 			try {
@@ -123,7 +122,6 @@ public class ECCKeyGenerator {
 				System.out.println("Keys restored");
 				gen.printPair();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -138,7 +136,6 @@ public class ECCKeyGenerator {
 			System.out.println("Keys restored");
 			gen.printPair();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}	

@@ -100,7 +100,11 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				PersonalizationCommands cmds = new PersonalizationCommands(comm);
-				cmds.doIssuance();
+				try {
+					cmds.doIssuance();
+				} catch (Exception e) {
+					Log.error(e.getMessage());
+				}
 			}
 		});
 

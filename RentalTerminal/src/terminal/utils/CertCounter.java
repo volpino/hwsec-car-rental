@@ -37,7 +37,7 @@ public class CertCounter {
 	
 	public static void setCarCounter(String carID, int counter) throws IOException {
 		FileWriter wr = new FileWriter("keys/cars/" + carID + ".counter");
-		wr.write(String.valueOf(counter + 1));
+		wr.write(String.valueOf(counter));
 		wr.close();
 	}
 }

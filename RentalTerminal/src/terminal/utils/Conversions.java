@@ -7,12 +7,15 @@ import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 
 public class Conversions {
-	final static int FIELD_SIZE = 21; // Specific for 163 bit curve (163bit = 21
-										// bytes)
+	final static int FIELD_SIZE = 21; // Specific for 163 bit curve (163bit = 21 bytes)
 
 	public static byte[] short2bytes(short s) {
-		byte[] res = { (byte) ((s >> 8) & 0xff), (byte) (s & 0xff) };
+		byte[] res = { (byte) ((s >> 8) & 0xFF), (byte) (s & 0xFF) };
 		return res;
+	}
+	
+	public static short bytes2short(byte[] b) {
+		return (short) (((b[0] & 0xFF) << 8) + (b[1] & 0xFF));
 	}
 
 	public static byte[] encodePubKey(ECPublicKey pub) {
@@ -64,6 +67,7 @@ public class Conversions {
 		int length = buf[base] & 0xFF;
 		for (int i = 0; i < index; i++) {
 			base += length + 1;
+			length = buf[base] & 0xFF;
 		}
 		return Arrays.copyOfRange(buf, base + 1, base + 1 + buf[base]);
 	}
@@ -73,5 +77,4 @@ public class Conversions {
 		short num = wrapped.getShort();
 		return num;
 	}
-
 }

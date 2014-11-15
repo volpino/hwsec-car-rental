@@ -99,13 +99,13 @@ public class RentalApplet extends Applet {
 			KeyBuilder.TYPE_EC_F2M_PRIVATE, KeyBuilder.LENGTH_EC_F2M_163, false
 		);
 		cardPubKey = (ECPublicKey) KeyBuilder.buildKey(
-				KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_163, false
+			KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_163, false
 		);
 		companyPubKey = (ECPublicKey) KeyBuilder.buildKey(
-				KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_163, false
+			KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_163, false
 		);
 		vehiclePubKey = (ECPublicKey) KeyBuilder.buildKey(
-				KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_163, false
+			KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_163, false
 		);
 		
 		initKey(cardPrivKey);
@@ -128,13 +128,14 @@ public class RentalApplet extends Applet {
 
 		byte[] buf = apdu.getBuffer();
 		if(status == STATUS_UNINITIALIZED) {
+			// Issuing commands
 			if (buf[ISO7816.OFFSET_CLA] == CLA_ISSUE) {
 				switch (buf[ISO7816.OFFSET_INS]) {
-				case CMD_CARDID:
+				case CMD_CARDID:  // set the card id
 					cardID = Util.getShort(buf, ISO7816.OFFSET_CDATA);
 					Util.setShort(buf, (short)0, cardID);
 					break;
-				case CMD_CARDKEYS:
+				case CMD_CARDKEYS:  // set the card keypair
 					findOffset(buf, (short) ISO7816.OFFSET_CDATA, (short) 0);
 					cardPubKey.setW(buf, offset[0], offset[1]);
 					findOffset(buf, (short) ISO7816.OFFSET_CDATA, (short) 1);
@@ -142,13 +143,13 @@ public class RentalApplet extends Applet {
 					
 					cardSignature.init(cardPrivKey, Signature.MODE_SIGN);
 					break;
-				case CMD_COMPANYPUB:
+				case CMD_COMPANYPUB:  // set the company public key
 					findOffset(buf, (short) ISO7816.OFFSET_CDATA, (short) 0);
 					companyPubKey.setW(buf, offset[0], offset[1]);
 					
 					companySignature.init(companyPubKey, Signature.MODE_VERIFY);
 					break;
-				case CMD_RANDSEED:
+				case CMD_RANDSEED:  // set the random seed
 					random.setSeed(buf, (short) 0, (short) 8);
 					status = STATUS_INITIALIZED;
 					break;
@@ -161,7 +162,8 @@ public class RentalApplet extends Applet {
 				ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 			}
 		}
-		else {			
+		else {
+			// Reception commands
 			if (buf[ISO7816.OFFSET_CLA] == CLA_RECEPTION) {
 				// First we need an initialization command
 				if (buf[ISO7816.OFFSET_INS] != CMD_REC_INIT && !receptionInitialized[0]) {
@@ -169,17 +171,19 @@ public class RentalApplet extends Applet {
 				}
 				
 				switch (buf[ISO7816.OFFSET_INS]) {
-				case CMD_REC_INIT:
+				case CMD_REC_INIT:  // initialize communication
 					// save the nonce in tmp1
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short)0, (short)8);
+					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short)0, (short) NONCE_LENGTH);
 					// Copy cardID and new nonce to the response buffer
-					Util.setShort(buf, (short)0, cardID);
-					random.generateData(buf, (short) 2, (short)8);
-					// Store new card nonce
-					Util.arrayCopy(buf, (short)2, nonce, (short)0, (short)8);
+					Util.setShort(buf, (short) 0, cardID);
+					// Generate and store new card nonce
+					random.generateData(buf, (short) 2, (short) NONCE_LENGTH);
+					Util.arrayCopy(buf, (short)2, nonce, (short) 0, (short) NONCE_LENGTH);
 					// sign the terminal nonce and put it in the response buffer
-					short sigLen = cardSignature.sign(tmp1, (short)0, (short)8, buf, (short)(2+8));
-					short totLen = (short) (sigLen + 2 + 8);
+					short sigLen = cardSignature.sign(
+						tmp1, (short)0, (short) NONCE_LENGTH, buf, (short) (2+NONCE_LENGTH)
+					);
+					short totLen = (short) (sigLen + 2 + NONCE_LENGTH);
 
 					short le = apdu.setOutgoing();
 					if (le < totLen) {
@@ -190,32 +194,33 @@ public class RentalApplet extends Applet {
 					
 					receptionInitialized[0] = true;
 					break;
-				case CMD_REC_GET_KM:
+				case CMD_REC_GET_KM:  // get kilometer counting
 					verifyCommand(buf);
 
 					Util.setShort(tmp2, (short) 0, kilometers);
 					
 					sendResponse(buf, apdu, tmp2, (short)2);
 					break;
-				case CMD_REC_RESET_KM:
+				case CMD_REC_RESET_KM:  // reset kilometer counting
 					verifyCommand(buf);
 					
-					kilometers = 0;  // Reset kilometer counter
+					kilometers = 0;
 					
 					sendResponse(buf, apdu, null, (short)0);
 					break;
-				case CMD_REC_CHECK_INUSE:
+				case CMD_REC_CHECK_INUSE:  // check inUse flag
 					verifyCommand(buf);
 					
 					tmp2[0] = (byte) (inUse ? 1 : 0);  // return inUse flag
 					
 					sendResponse(buf, apdu, tmp2, (short)1);
 					break;
-				case CMD_REC_ADD_CERT:
+				case CMD_REC_ADD_CERT:  // add certificate for vehicle, get public key and counter
 					verifyCommand(buf, (short) 3);
 										
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
 					Util.arrayCopy(buf, offset[0], vehicleCert, (short) 0, offset[1]);
+					vehicleCertLength = offset[1];
 					
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 2);
 					vehiclePubKey.setW(buf, offset[0], offset[1]);
@@ -224,14 +229,14 @@ public class RentalApplet extends Applet {
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 3);
 					certCounter = Util.getShort(buf, offset[0]);
 					
-					isAssociated = true;
+					isAssociated = true;  // only at the end set flag to true
 					
 					sendResponse(buf, apdu, null, (short)0);
 					break;				
-				case CMD_REC_DEL_CERT:
+				case CMD_REC_DEL_CERT:  // delete certificate for vehicle, public key and counter
 					verifyCommand(buf);
 					
-					isAssociated = false;
+					isAssociated = false;  // first set flag to false
 					vehiclePubKey.clearKey();
 					Util.arrayFillNonAtomic(vehicleCert, (short) 0, (short) vehicleCert.length, (byte) 0);
 					
