@@ -32,7 +32,7 @@ import terminal.utils.Log;
 
 // TODO Optional: Add option to simulate failure of kilometer writing
 
-public class CarTerminal extends JFrame implements TerminalInterface {
+public class VehicleTerminal extends JFrame implements TerminalInterface {
 
 	private static final long serialVersionUID = -3770099088414835331L;
 	static final String TITLE = "CarTerminal";
@@ -49,7 +49,7 @@ public class CarTerminal extends JFrame implements TerminalInterface {
 	JTextArea logArea;
 	private CardCommunication comm;
 
-	public CarTerminal() {
+	public VehicleTerminal() {
     	comm = new CardCommunication(this);
 		initUI();
 	}
@@ -178,7 +178,7 @@ public class CarTerminal extends JFrame implements TerminalInterface {
 		EventQueue.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				CarTerminal cT = new CarTerminal();
+				VehicleTerminal cT = new VehicleTerminal();
 				cT.setVisible(true);
 			}
 		});
