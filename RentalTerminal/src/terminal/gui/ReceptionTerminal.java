@@ -35,6 +35,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	JComboBox commandsList;
 	JButton authenticate;
 	JButton launchCommand;
+	JButton cardSetup;
 	
 	private CardCommunication comm;
 	JFrame frame = this;
@@ -91,7 +92,8 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         box.add(label);
         box.add(Box.createRigidArea(new Dimension(0,10)));
 
-        JButton cardSetup = new JButton("Setup card");
+        cardSetup = new JButton("Setup card");
+        cardSetup.setEnabled(false);
         box.add(cardSetup);
         box.add(Box.createRigidArea(new Dimension(0,10)));
         
@@ -241,6 +243,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 		launchCommand.setEnabled(false);
         commandsList.setEnabled(false);
         authenticate.setEnabled(true);
+        cardSetup.setEnabled(true);
 	}
 
 	@Override
@@ -248,6 +251,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 		launchCommand.setEnabled(false);
         commandsList.setEnabled(false);
         authenticate.setEnabled(false);
+        cardSetup.setEnabled(false);
 	}
 
     public static void main(String[] args) {
