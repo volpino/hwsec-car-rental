@@ -44,10 +44,11 @@ public class RentalApplet extends Applet {
 	public static final short NONCE_LENGTH = 8;
 
 	private short cardID = 0;
-	private short kilometers = 9999;
+	private short kilometers = 0;
 	private short certCounter = 0;
 	private boolean inUse = false; 
 	private boolean isAssociated = false;
+	private boolean[] receptionInitialized;
 
 	private RandomData random;
 	
@@ -88,6 +89,7 @@ public class RentalApplet extends Applet {
 		nonce = JCSystem.makeTransientByteArray((short) NONCE_LENGTH, JCSystem.CLEAR_ON_RESET);
 		tmp1 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
 		tmp2 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
+		receptionInitialized = JCSystem.makeTransientBooleanArray((short) 1, JCSystem.CLEAR_ON_RESET);
 		
 		// vehicle certificate array
 		vehicleCert = new byte[64];
@@ -161,6 +163,11 @@ public class RentalApplet extends Applet {
 		}
 		else {			
 			if (buf[ISO7816.OFFSET_CLA] == CLA_RECEPTION) {
+				// First we need an initialization command
+				if (buf[ISO7816.OFFSET_INS] != CMD_REC_INIT && !receptionInitialized[0]) {
+					ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
+				}
+				
 				switch (buf[ISO7816.OFFSET_INS]) {
 				case CMD_REC_INIT:
 					// save the nonce in tmp1
@@ -173,13 +180,15 @@ public class RentalApplet extends Applet {
 					// sign the terminal nonce and put it in the response buffer
 					short sigLen = cardSignature.sign(tmp1, (short)0, (short)8, buf, (short)(2+8));
 					short totLen = (short) (sigLen + 2 + 8);
-					
+
 					short le = apdu.setOutgoing();
 					if (le < totLen) {
 						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
 					}
 					apdu.setOutgoingLength(totLen);					 
 					apdu.sendBytes((short)0, totLen);
+					
+					receptionInitialized[0] = true;
 					break;
 				case CMD_REC_GET_KM:
 					verifyCommand(buf);

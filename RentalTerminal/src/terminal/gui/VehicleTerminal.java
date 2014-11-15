@@ -35,7 +35,7 @@ import terminal.utils.Log;
 public class VehicleTerminal extends JFrame implements TerminalInterface {
 
 	private static final long serialVersionUID = -3770099088414835331L;
-	static final String TITLE = "CarTerminal";
+	static final String TITLE = "VehicleTerminal";
 
 	private boolean driving = false;
 	JButton startButton;
