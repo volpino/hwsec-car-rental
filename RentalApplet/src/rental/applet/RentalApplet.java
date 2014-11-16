@@ -48,10 +48,12 @@ public class RentalApplet extends Applet {
 	public static final byte CMD_VEH_SAVEKM = (byte) 0x03;
 	
 	public static final short NONCE_LENGTH = 8;
+	public static final short KM_LENGTH = 8;
+	public static final short COUNTER_LENGTH = 8;
 
 	private short cardID = 0;
-	private short kilometers = 0;
-	private short certCounter = 0;
+	private byte[] kilometers;
+	private byte[] certCounter;
 	private boolean inUse = false; 
 	private boolean isAssociated = false;
 	private boolean[] receptionInitialized;
@@ -71,6 +73,7 @@ public class RentalApplet extends Applet {
 	byte[] nonce;
 	byte[] tmp1;
 	byte[] tmp2;
+	byte[] tmp3;
 	
 	byte[] vehicleCert;
 	short vehicleCertLength;
@@ -87,8 +90,7 @@ public class RentalApplet extends Applet {
 	
 	public static void install(byte[] bArray, short bOffset, byte bLength) {
 		// GP-compliant JavaCard applet registration
-		new RentalApplet().register(bArray,
-				(short) (bOffset + 1), bArray[bOffset]);
+		new RentalApplet().register(bArray, (short) (bOffset + 1), bArray[bOffset]);
 	}
 	
 	RentalApplet() {
@@ -97,11 +99,15 @@ public class RentalApplet extends Applet {
 		nonce = JCSystem.makeTransientByteArray((short) NONCE_LENGTH, JCSystem.CLEAR_ON_RESET);
 		tmp1 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
 		tmp2 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
+		tmp3 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
 		receptionInitialized = JCSystem.makeTransientBooleanArray((short) 1, JCSystem.CLEAR_ON_RESET);
 		vehicleInitialized = JCSystem.makeTransientByteArray((short) 1, JCSystem.CLEAR_ON_RESET);
 		
 		// vehicle certificate array
 		vehicleCert = new byte[64];
+		
+		certCounter = new byte[COUNTER_LENGTH];
+		kilometers = new byte[KM_LENGTH];
 		
 		// Create instances of keys.
 		cardPrivKey = (ECPrivateKey) KeyBuilder.buildKey(
@@ -187,7 +193,7 @@ public class RentalApplet extends Applet {
 					Util.setShort(buf, (short) 0, cardID);
 					// Generate and store new card nonce
 					random.generateData(buf, (short) 2, (short) NONCE_LENGTH);
-					Util.arrayCopy(buf, (short)2, nonce, (short) 0, (short) NONCE_LENGTH);
+					Util.arrayCopy(buf, (short) 2, nonce, (short) 0, (short) NONCE_LENGTH);
 					// sign the terminal nonce and put it in the response buffer
 					short sigLen = cardSignature.sign(
 						tmp1, (short)0, (short) NONCE_LENGTH, buf, (short) (2+NONCE_LENGTH)
@@ -206,23 +212,27 @@ public class RentalApplet extends Applet {
 				case CMD_REC_GET_KM:  // get kilometer counting
 					verifyCommand(buf);
 
-					Util.setShort(tmp2, (short) 0, kilometers);
+					Util.arrayCopy(kilometers, (short) 0, tmp2, (short) 0, KM_LENGTH);
 					
-					sendResponse(buf, apdu, tmp2, (short)2);
+					sendResponse(buf, apdu, tmp2, (short) KM_LENGTH);
 					break;
 				case CMD_REC_RESET_KM:  // reset kilometer counting
 					verifyCommand(buf);
 					
-					kilometers = 0;
+					JCSystem.beginTransaction();
+					for (short i=0; i<KM_LENGTH; i++) {
+						kilometers[i] = 0;
+					}
+					JCSystem.commitTransaction();
 					
-					sendResponse(buf, apdu, null, (short)0);
+					sendResponse(buf, apdu, null, (short) 0);
 					break;
 				case CMD_REC_CHECK_INUSE:  // check inUse flag
 					verifyCommand(buf);
 					
 					tmp2[0] = (byte) (inUse ? 1 : 0);  // return inUse flag
 					
-					sendResponse(buf, apdu, tmp2, (short)1);
+					sendResponse(buf, apdu, tmp2, (short) 1);
 					break;
 				case CMD_REC_ADD_CERT:  // add certificate for vehicle, get public key and counter
 					verifyCommand(buf, (short) 3);
@@ -236,7 +246,7 @@ public class RentalApplet extends Applet {
 					vehicleSignature.init(vehiclePubKey, Signature.MODE_VERIFY);
 					
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 3);
-					certCounter = Util.getShort(buf, offset[0]);
+					Util.arrayCopy(buf, offset[0], certCounter, (short) 0, offset[1]);
 					
 					isAssociated = true;  // only at the end set flag to true
 					
@@ -275,15 +285,16 @@ public class RentalApplet extends Applet {
 					len++;
 					
 					// Put certCounter in the buffer
-					buf[len] = 2;
+					buf[len] = COUNTER_LENGTH;
 					len++;
-					Util.setShort(buf, len, certCounter);
-					len += 2;
+					Util.arrayCopy(certCounter, (short) 0, buf, (short) len, COUNTER_LENGTH);
+					len += COUNTER_LENGTH;
 					
 					// Put vehicleCert in the buffer
 					buf[len] = (byte) vehicleCertLength;
-					Util.arrayCopy(vehicleCert, (short) 0, buf, (short) (len+1), vehicleCertLength);
-					len += 1 + vehicleCertLength;
+					len++;
+					Util.arrayCopy(vehicleCert, (short) 0, buf, (short) len, vehicleCertLength);
+					len += vehicleCertLength;
 					
 					// send it!
 					le = apdu.setOutgoing();
@@ -366,32 +377,34 @@ public class RentalApplet extends Applet {
 						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 					
 					// save the terminal nonce in tmp1
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
+					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, NONCE_LENGTH);
 					
 					// get driven kilometers
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
-					short kmToAdd = Util.getShort(buf, offset[0]);
+					byte[] kmToAdd = tmp3;
+					Util.arrayCopy(buf, offset[0], kmToAdd, (short) 0, offset[1]);
 					
 					byte[] dataToVerify = tmp2;
-					Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, (short) NONCE_LENGTH);
-					Util.setShort(dataToVerify, NONCE_LENGTH, kmToAdd);
+					Util.arrayCopy(nonce, (short) 0, dataToVerify, (short) 0, NONCE_LENGTH);
+					Util.arrayCopy(kmToAdd, (short) 0, dataToVerify, NONCE_LENGTH, KM_LENGTH);
 					
 					// get signature of nonce||kilometers
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
 					verified = vehicleSignature.verify(
-						dataToVerify, (short) 0, (short) (NONCE_LENGTH+2),
+						dataToVerify, (short) 0, (short) (NONCE_LENGTH+KM_LENGTH),
 						buf, offset[0], offset[1]
 					);
 					if (!verified) {
 						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 					}
 					
-					// Check for overflow
-					if (((short) (kilometers + kmToAdd)) > kilometers) {
-						kilometers += kmToAdd; 
-					} else {
+					JCSystem.beginTransaction();
+					if (sumByteArrays(kilometers, kmToAdd, KM_LENGTH) != 0) {  // there was an overflow!
+						JCSystem.abortTransaction();
 						ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 					}
+					JCSystem.commitTransaction();
+					
 					inUse = false;
 					
 					// Sign terminal nonce
@@ -493,9 +506,9 @@ public class RentalApplet extends Applet {
 		short sigLen = cardSignature.sign(
 			terminalNonce,  // data to sign
 			(short) 0,  // start of data to sign
-			(short) (NONCE_LENGTH+responseLength),  // length to sign is nonce + response
+			(short) (NONCE_LENGTH + responseLength),  // length to sign is nonce + response
 			buf,  // destination
-			(short)(NONCE_LENGTH+1+responseLength+1)  // put the signature after nonce, response length, response data and signature length  
+			(short) (NONCE_LENGTH + 1 + responseLength + 1)  // put the signature after nonce, response length, response data and signature length  
 		);
 		buf[NONCE_LENGTH + 1 + responseLength] = (byte) sigLen;  // write signature length
 		
@@ -509,5 +522,16 @@ public class RentalApplet extends Applet {
 		
 		apdu.setOutgoingLength(totLen);					 
 		apdu.sendBytes((short)0, totLen);
+	}
+	
+	short sumByteArrays(byte[] first, byte[] second, short len) {
+		short carry = 0;
+		short currSum = 0;
+		for (short i=(short) (len-1); i>=0; i--) {
+			currSum = (short) ((first[i] & 0xFF) + (second[i] & 0xFF) + carry);
+			carry = (short) (currSum >> 8);
+			first[i] = (byte) currSum;
+		}
+		return carry;
 	}
 }

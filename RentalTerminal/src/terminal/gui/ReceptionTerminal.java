@@ -120,10 +120,10 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         final String CHECK_INUSE = "Check InUse flag";
         final String ADD_VEHICLE = "Add certificate for vehicle";
         final String REMOVE_VEHICLE = "Remove certificate from card";
-        final String GET_MILEAGE = "Get mileage counting";
-        final String RESET_MILEAGE = "Reset mileage counting";
+        final String GET_KM = "Get kilometer counting";
+        final String RESET_KM = "Reset kilometer counting";
 
-        String[] commands = {CHECK_INUSE, ADD_VEHICLE, REMOVE_VEHICLE, GET_MILEAGE, RESET_MILEAGE};
+        String[] commands = {CHECK_INUSE, ADD_VEHICLE, REMOVE_VEHICLE, GET_KM, RESET_KM};
         
         commandsList = new JComboBox(commands);
 
@@ -165,16 +165,16 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         launchCommand.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				if (commandsList.getSelectedItem().toString().equals(GET_MILEAGE)) {
+				if (commandsList.getSelectedItem().toString().equals(GET_KM)) {
 					try {
-						int kilometerOnCard = receptionCmds.getKilometers();
+						long kilometerOnCard = receptionCmds.getKilometers();
 						Log.info("Read out "+kilometerOnCard+" driven kilometers.");
 					} catch (Exception e) {
 						Log.error("Could not read out kilometers");
 						e.printStackTrace();
 					}
 				}
-				if (commandsList.getSelectedItem().toString().equals(RESET_MILEAGE)) {
+				if (commandsList.getSelectedItem().toString().equals(RESET_KM)) {
 					try {
 						receptionCmds.resetKilometers();
 						Log.info("Kilometers on card were reset");

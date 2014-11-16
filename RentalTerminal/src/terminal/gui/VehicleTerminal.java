@@ -38,7 +38,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 	JTextField kilometerField;
 	JComboBox carsList;
 
-	int driveKilometers = 0;
+	long driveKilometers = 0;
 
 	JTextArea logArea;
 	private CardCommunication comm;
@@ -117,7 +117,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 				String carID = carsList.getSelectedItem().toString();
 
 				try {
-					driveKilometers = Integer.parseInt(kilometerField.getText());
+					driveKilometers = Long.parseLong(kilometerField.getText());
 				} catch (NumberFormatException e) {
 					driveKilometers = 0;
 				}
@@ -148,7 +148,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 	}
 	
 	// Verify that entered kilometers are valid
-	boolean isKilometerFieldValid(int value){
+	boolean isKilometerFieldValid(long value){
 		if(value >= 1 && value <= 99999)
 			return true;
 		else

@@ -7,12 +7,12 @@ import java.io.IOException;
 import java.util.Scanner;
 
 public class CertCounter {
-	public static int getNewCounter() throws IOException {
+	public static long getNewCounter() throws IOException {
 		String path = "keys/master/company.counter";
-		int result;
+		long result;
 		try {
 			Scanner in = new Scanner(new FileReader(path));
-			result = in.nextInt();
+			result = in.nextLong();
 			in.close();
 		} catch (FileNotFoundException e) {
 			result = 0;
@@ -23,19 +23,19 @@ public class CertCounter {
 		return result;
 	}
 	
-	public static int getCarCounter(String carID) {
+	public static long getCarCounter(String carID) {
 		Scanner in;
 		try {
 			in = new Scanner(new FileReader("keys/cars/" + carID + ".counter"));
 		} catch (FileNotFoundException e) {
 			return 0;
 		}
-		int ret = in.nextInt();
+		long ret = in.nextLong();
 		in.close();
 		return ret;
 	}
 	
-	public static void setCarCounter(String carID, int counter) throws IOException {
+	public static void setCarCounter(String carID, long counter) throws IOException {
 		FileWriter wr = new FileWriter("keys/cars/" + carID + ".counter");
 		wr.write(String.valueOf(counter));
 		wr.close();

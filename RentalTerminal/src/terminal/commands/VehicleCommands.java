@@ -58,10 +58,10 @@ public class VehicleCommands {
 		byte[] buffer = response.getData();
 				
 		cardKey = (ECPublicKey) ECCKeyGenerator.decodeKey(Conversions.getChunk(buffer, 0, 0));
-		int certCounter = Conversions.bytes2short(Conversions.getChunk(buffer, 0, 1));
+		long certCounter = Conversions.bytesToLong(Conversions.getChunk(buffer, 0, 1));
 		byte[] vehicleCert = Conversions.getChunk(buffer, 0, 2);
 		
-		int currentCounter = CertCounter.getCarCounter(carID);
+		long currentCounter = CertCounter.getCarCounter(carID);
 		if (certCounter >= currentCounter) {
 			CertCounter.setCarCounter(carID, certCounter);
 		}
@@ -73,7 +73,7 @@ public class VehicleCommands {
 		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
 		dataToVerify.write(Conversions.encodePubKey((ECPublicKey) vehicleKeypair.getPublic()));
 		dataToVerify.write(Conversions.encodePubKey(cardKey));
-		dataToVerify.write(certCounter);
+		dataToVerify.write(Conversions.longToBytes(certCounter));
 		
 		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), companyKey, vehicleCert);
 		if (!verified) {
@@ -130,11 +130,11 @@ public class VehicleCommands {
 		}
 	}
 	
-	void writeKilometers(int kilometers) throws Exception {
+	void writeKilometers(long kilometers) throws Exception {
 		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
 		
-		byte[] kmBytes = Conversions.short2bytes((short) kilometers);
+		byte[] kmBytes = Conversions.longToBytes(kilometers);
 		
 		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
 		dataToSign.write(cardNonce);
@@ -168,7 +168,7 @@ public class VehicleCommands {
 		authenticateVehicle();
 	}
 	
-	public void stopVehicle(int kilometers) throws Exception {
+	public void stopVehicle(long kilometers) throws Exception {
 		sendInit();
 		authenticateCard();
 		authenticateVehicle();

@@ -9,12 +9,12 @@ import java.util.Arrays;
 public class Conversions {
 	final static int FIELD_SIZE = 21; // Specific for 163 bit curve (163bit = 21 bytes)
 
-	public static byte[] short2bytes(short s) {
+	public static byte[] shortToBytes(short s) {
 		byte[] res = { (byte) ((s >> 8) & 0xFF), (byte) (s & 0xFF) };
 		return res;
 	}
 	
-	public static short bytes2short(byte[] b) {
+	public static short bytesToShort(byte[] b) {
 		return (short) (((b[0] & 0xFF) << 8) + (b[1] & 0xFF));
 	}
 
@@ -72,9 +72,15 @@ public class Conversions {
 		return Arrays.copyOfRange(buf, base + 1, base + 1 + buf[base]);
 	}
 
-	public static short bytesToInt(byte[] bytes) {
+	public static long bytesToLong(byte[] bytes) {
 		ByteBuffer wrapped = ByteBuffer.wrap(bytes); // big-endian by default
-		short num = wrapped.getShort();
+		long num = wrapped.getLong();
 		return num;
+	}
+	
+	public static byte[] longToBytes(long x) {
+	    ByteBuffer buffer = ByteBuffer.allocate(8);
+	    buffer.putLong(x);
+	    return buffer.array();
 	}
 }

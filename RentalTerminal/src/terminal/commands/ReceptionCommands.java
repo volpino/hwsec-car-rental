@@ -126,13 +126,13 @@ public class ReceptionCommands {
 		return result;
 	}
 	
-	public int getKilometers() throws Exception{
+	public long getKilometers() throws Exception{
 		byte[] kilometers = sendCommand(CMD_REC_GET_KM, null);
-		return  Conversions.bytesToInt(kilometers);
+		return Conversions.bytesToLong(kilometers);
 	}
 	
 	public void resetKilometers() throws Exception{
-			sendCommand(CMD_REC_RESET_KM, null);
+		sendCommand(CMD_REC_RESET_KM, null);
 	}
 	
 	public boolean checkInUseFlag() throws Exception{
@@ -141,7 +141,7 @@ public class ReceptionCommands {
 	}
 	
 	public void addVehicleCert(ECPublicKey publicVehicleKey) throws Exception {
-		short counter = (short) CertCounter.getNewCounter();
+		byte[] counter = Conversions.longToBytes(CertCounter.getNewCounter());
 		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
 		dataToSign.write(Conversions.encodePubKey(publicVehicleKey));
 		dataToSign.write(Conversions.encodePubKey(cardKey));
@@ -153,7 +153,7 @@ public class ReceptionCommands {
 		byte[][] data = new byte[3][];
 		data[0] = signature;
 		data[1] = Conversions.encodePubKey(publicVehicleKey);
-		data[2] = Conversions.short2bytes(counter);
+		data[2] = counter;
 		
 		sendCommand(CMD_REC_ADD_CERT, data);
 	}
