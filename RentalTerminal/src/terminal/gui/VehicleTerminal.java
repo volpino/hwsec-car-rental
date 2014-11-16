@@ -149,7 +149,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 	
 	// Verify that entered kilometers are valid
 	boolean isKilometerFieldValid(long value){
-		if(value >= 1 && value <= 99999)
+		if(value >= 1 && value <= Long.MAX_VALUE)
 			return true;
 		else
 			return false;

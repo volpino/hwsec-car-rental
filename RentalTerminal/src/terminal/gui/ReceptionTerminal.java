@@ -70,10 +70,10 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         JTabbedPane tabbedPane = new JTabbedPane();
         tabbedPane.addTab("Commands", null,
                           commandsPanel,
-                          "Commands panel"); //tooltip text
+                          "Commands panel"); // tooltip text
         tabbedPane.addTab("Setup", null,
                 		  setupPanel,
-                		  "Setup panel"); //tooltip text
+                		  "Setup panel"); // tooltip text
         
         newContentPane.add(tabbedPane, BorderLayout.CENTER);
         newContentPane.add(scrollLogArea, BorderLayout.PAGE_END);
@@ -110,7 +110,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 
         JPanel pane = new JPanel(new BorderLayout());
         pane.add(box, BorderLayout.PAGE_START);
-        // pane.add(showButton, BorderLayout.PAGE_END);
+        //pane.add(showButton, BorderLayout.PAGE_END);
         return pane;
     }
 
@@ -237,7 +237,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         
         JPanel pane = new JPanel(new BorderLayout());
         pane.add(box, BorderLayout.PAGE_START);
-        // pane.add(launchCommand, BorderLayout.PAGE_END);
+        //pane.add(launchCommand, BorderLayout.PAGE_END);
         return pane;
     }
     

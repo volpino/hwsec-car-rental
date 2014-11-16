@@ -399,7 +399,7 @@ public class RentalApplet extends Applet {
 					}
 					
 					JCSystem.beginTransaction();
-					if (sumByteArrays(kilometers, kmToAdd, KM_LENGTH) != 0) {  // there was an overflow!
+					if (!sumByteArrays(kilometers, kmToAdd, KM_LENGTH)) {  // there was an overflow!
 						JCSystem.abortTransaction();
 						ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 					}
@@ -524,14 +524,18 @@ public class RentalApplet extends Applet {
 		apdu.sendBytes((short)0, totLen);
 	}
 	
-	short sumByteArrays(byte[] first, byte[] second, short len) {
-		short carry = 0;
+	boolean sumByteArrays(byte[] first, byte[] second, short len) {
+		if (second[0] < 0)  // do not allow negative numbers (first byte needs to be positive)
+			return false;
+		
+		byte carry = 0;
 		short currSum = 0;
 		for (short i=(short) (len-1); i>=0; i--) {
-			currSum = (short) ((first[i] & 0xFF) + (second[i] & 0xFF) + carry);
-			carry = (short) (currSum >> 8);
+			currSum = (short) ((first[i] & 0xFF) + (second[i] & 0xFF) + (carry & 0xFF));
+			carry = (byte) (currSum >> 8);
 			first[i] = (byte) currSum;
 		}
-		return carry;
+		// check for overflows
+		return (first[0] >= 0) && (carry == 0);
 	}
 }
