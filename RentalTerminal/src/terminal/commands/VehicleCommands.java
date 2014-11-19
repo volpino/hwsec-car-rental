@@ -7,16 +7,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.interfaces.ECPublicKey;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 
 import javax.smartcardio.CommandAPDU;
 import javax.smartcardio.ResponseAPDU;
-
-import org.bouncycastle.util.Arrays;
 
 import terminal.crypto.ECCKeyGenerator;
 import terminal.crypto.ECCSignature;
 import terminal.utils.CertCounter;
 import terminal.utils.Conversions;
+
+import terminal.utils.LogToFile;
 
 
 public class VehicleCommands {
@@ -155,11 +156,23 @@ public class VehicleCommands {
 			throw new Exception("Got invalid response");
 		}
 		
+		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
+		dataToVerify.write(nonce);
+		dataToVerify.write(kmBytes);
+		
 		byte[] buffer = response.getData();
-		boolean verified = ECCSignature.verifySig(nonce, cardKey, buffer);
+		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, buffer);
 		if (!verified) {
+			LogToFile.write("Card signature is not valid. Writing of kilometers was not successful");
 			throw new SecurityException("Card signature is not valid. Writing of kilometers was not successful");
+			
 		}
+		
+		
+		LogToFile.write("Nonce: " + Arrays.toString(nonce));
+		LogToFile.write("Kilometers: " + Arrays.toString(kmBytes));
+		LogToFile.write("Signature: " + Arrays.toString(buffer));
+		
 	}
 	
 	public void startVehicle() throws Exception {

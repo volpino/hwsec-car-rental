@@ -256,7 +256,6 @@ public class RentalApplet extends Applet {
 					verifyCommand(buf);
 					
 					isAssociated = false;  // first set flag to false
-					vehiclePubKey.clearKey();
 					Util.arrayFillNonAtomic(vehicleCert, (short) 0, (short) vehicleCert.length, (byte) 0);
 					
 					sendResponse(buf, apdu, null, (short)0);
@@ -378,7 +377,7 @@ public class RentalApplet extends Applet {
 					
 					// save the terminal nonce in tmp1
 					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, NONCE_LENGTH);
-					
+				
 					// get driven kilometers
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 0);
 					byte[] kmToAdd = tmp3;
@@ -407,8 +406,11 @@ public class RentalApplet extends Applet {
 					
 					inUse = false;
 					
-					// Sign terminal nonce
-					sigLen = cardSignature.sign(tmp1, (short)0, (short) NONCE_LENGTH, buf, (short) 0);
+					// Copy the kilometer into the data to sign buffer
+					Util.arrayCopy(kmToAdd, (short) 0, tmp1, NONCE_LENGTH, KM_LENGTH);
+					
+					// Sign terminal nonce + amount of km
+					sigLen = cardSignature.sign(tmp1, (short)0, (short) (NONCE_LENGTH+KM_LENGTH), buf, (short) 0);
 					
 					// send all the things
 					len = sigLen;

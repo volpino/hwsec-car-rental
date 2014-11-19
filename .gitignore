@@ -49,3 +49,4 @@ local.properties
 
 RentalTerminal/keys/customers/*.pub
 *.counter
+*.log
