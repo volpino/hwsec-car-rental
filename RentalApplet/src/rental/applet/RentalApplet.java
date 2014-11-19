@@ -278,10 +278,18 @@ public class RentalApplet extends Applet {
 				case CMD_VEH_INIT:
 					vehicleInitialized[0] = 1;
 					
+					// save the terminal nonce in tmp1
+					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
+					
+					// Generate and store new card nonce
+					random.generateData(buf, (short) 0, (short) NONCE_LENGTH);
+					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short) NONCE_LENGTH);
+					
 					// Put card public key in the buffer (length + actual data)
-					len = cardPubKey.getW(buf, (short) 1);
-					buf[0] = (byte) len;
-					len++;
+					len = cardPubKey.getW(buf, (short) (NONCE_LENGTH + 1));
+					buf[NONCE_LENGTH] = (byte) len;
+					//Point len to the position in buf where we can write
+					len += NONCE_LENGTH + 1;
 					
 					// Put certCounter in the buffer
 					buf[len] = COUNTER_LENGTH;
@@ -294,6 +302,16 @@ public class RentalApplet extends Applet {
 					len++;
 					Util.arrayCopy(vehicleCert, (short) 0, buf, (short) len, vehicleCertLength);
 					len += vehicleCertLength;
+					
+					//Generate Signature
+					Util.arrayCopy(vehicleCert, (short) 0, tmp1, NONCE_LENGTH, vehicleCertLength);
+					
+					sigLen = cardSignature.sign(
+						tmp1, (short)0, (short) (NONCE_LENGTH + vehicleCertLength),
+						buf, (short) (len + 1)
+					);
+					buf[len] = (byte) sigLen;
+					len += sigLen + 1;
 					
 					// send it!
 					le = apdu.setOutgoing();

@@ -50,18 +50,33 @@ public class VehicleCommands {
 	}
 	
 	void sendInit() throws Exception {
+		byte[] nonce = new byte[NONCE_LENGTH];
+		random.nextBytes(nonce);
+		
 		ResponseAPDU response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_VEHICLE, CMD_VEH_INIT, 0x00, 0x00, 255)
+			new CommandAPDU(CLA_VEHICLE, CMD_VEH_INIT, 0x00, 0x00, nonce, 255)
 		);
 		if (response.getSW() != 0x9000) {
 			throw new Exception("Got invalid response");
 		}
 		byte[] buffer = response.getData();
-				
-		cardKey = (ECPublicKey) ECCKeyGenerator.decodeKey(Conversions.getChunk(buffer, 0, 0));
-		long certCounter = Conversions.bytesToLong(Conversions.getChunk(buffer, 0, 1));
-		byte[] vehicleCert = Conversions.getChunk(buffer, 0, 2);
+	
+		//Receive nonceB
+		cardNonce = Arrays.copyOfRange(buffer, 0, NONCE_LENGTH);
+
+		//Public card key
+		cardKey = (ECPublicKey) ECCKeyGenerator.decodeKey(Conversions.getChunk(buffer, NONCE_LENGTH, 0));
 		
+		//Get Cert counter
+		long certCounter = Conversions.bytesToLong(Conversions.getChunk(buffer, NONCE_LENGTH, 1));
+		
+		//Get Sc
+		byte[] vehicleCert = Conversions.getChunk(buffer, NONCE_LENGTH, 2);
+		
+		//Get validation Certificate
+		byte[] validationCert = Conversions.getChunk(buffer, NONCE_LENGTH, 3);
+		
+		//Check that new counter is higher than old one
 		long currentCounter = CertCounter.getCarCounter(carID);
 		if (certCounter >= currentCounter) {
 			CertCounter.setCarCounter(carID, certCounter);
@@ -70,8 +85,9 @@ public class VehicleCommands {
 			throw new SecurityException("CertCounter is lower than vehicle's one. Rejecting card");
 		}
 		
-		
 		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
+		
+		//Verify Signature Sc
 		dataToVerify.write(Conversions.encodePubKey((ECPublicKey) vehicleKeypair.getPublic()));
 		dataToVerify.write(Conversions.encodePubKey(cardKey));
 		dataToVerify.write(Conversions.longToBytes(certCounter));
@@ -80,6 +96,21 @@ public class VehicleCommands {
 		if (!verified) {
 			throw new SecurityException("Vehicle certificate is not valid. Rejecting card");
 		}
+		
+		dataToVerify.reset();
+		
+		//Verify Signature of NonceA and Sc
+		dataToVerify.write(nonce);
+		dataToVerify.write(vehicleCert);
+		
+		verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, validationCert);
+		if (!verified) {
+			throw new SecurityException("Signature of Nonce and Signature Sc is not valid!");
+		}
+		
+		
+		
+		
 	}
 	
 	void authenticateCard() throws Exception {
