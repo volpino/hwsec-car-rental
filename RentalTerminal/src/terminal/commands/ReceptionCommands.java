@@ -49,10 +49,10 @@ public class ReceptionCommands {
 		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_RECEPTION, CMD_REC_INIT, 0x00, 0x00, nonce, 64)
 		);
-		
 		if (response.getSW() != 0x9000) {
 			throw new Exception("Got invalid response");
 		}
+		
 		byte[] buf = response.getData();
 		
 		// message is of the format <nonce>||<cardIDLength>||cardID
@@ -105,6 +105,10 @@ public class ReceptionCommands {
 		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_RECEPTION, command, 0x00, 0x00, dataToSend.toByteArray(), 255)
 		);
+		if (response.getSW() != 0x9000) {
+			throw new Exception("Got invalid response");
+		}
+		
 		byte[] buf = response.getData();
 		cardNonce = Arrays.copyOfRange(buf, 0, NONCE_LENGTH);
 
