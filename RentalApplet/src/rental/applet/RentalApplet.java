@@ -43,9 +43,8 @@ public class RentalApplet extends Applet {
 	
 	public static final byte CLA_VEHICLE = (byte) 0xB2;
 	public static final byte CMD_VEH_INIT = (byte) 0x00;
-	public static final byte CMD_VEH_AUTHCARD = (byte) 0x01;
-	public static final byte CMD_VEH_AUTHVEHICLE = (byte) 0x02;
-	public static final byte CMD_VEH_SAVEKM = (byte) 0x03;
+	public static final byte CMD_VEH_START = (byte) 0x01;
+	public static final byte CMD_VEH_SAVEKM = (byte) 0x02;
 	
 	public static final short NONCE_LENGTH = 8;
 	public static final short KM_LENGTH = 8;
@@ -57,7 +56,7 @@ public class RentalApplet extends Applet {
 	private boolean inUse = false; 
 	private boolean isAssociated = false;
 	private boolean[] receptionInitialized;
-	private byte[] vehicleInitialized;
+	private boolean[] vehicleInitialized;
 
 	private RandomData random;
 	
@@ -101,7 +100,7 @@ public class RentalApplet extends Applet {
 		tmp2 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
 		tmp3 = JCSystem.makeTransientByteArray((short) 256, JCSystem.CLEAR_ON_RESET);
 		receptionInitialized = JCSystem.makeTransientBooleanArray((short) 1, JCSystem.CLEAR_ON_RESET);
-		vehicleInitialized = JCSystem.makeTransientByteArray((short) 1, JCSystem.CLEAR_ON_RESET);
+		vehicleInitialized = JCSystem.makeTransientBooleanArray((short) 1, JCSystem.CLEAR_ON_RESET);
 		
 		// vehicle certificate array
 		vehicleCert = new byte[64];
@@ -276,7 +275,7 @@ public class RentalApplet extends Applet {
 				}
 				switch (buf[ISO7816.OFFSET_INS]) {
 				case CMD_VEH_INIT:
-					vehicleInitialized[0] = 1;
+					vehicleInitialized[0] = true;
 					
 					// save the terminal nonce in tmp1
 					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
@@ -321,41 +320,10 @@ public class RentalApplet extends Applet {
 					apdu.setOutgoingLength(len);					 
 					apdu.sendBytes((short)0, len);
 					break;
-				case CMD_VEH_AUTHCARD:
+				case CMD_VEH_START:
 					// allow performing commands only in order
-					if (vehicleInitialized[0] != 1)
+					if (!vehicleInitialized[0])
 						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
-					vehicleInitialized[0] = 2;
-					
-					// save the terminal nonce in tmp1
-					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
-					// copy also the vehicle public key in tmp1
-					short vehiclePubKeyLength = vehiclePubKey.getW(tmp1, NONCE_LENGTH);
-					
-					// Generate and store new card nonce
-					random.generateData(buf, (short) 0, (short) NONCE_LENGTH);
-					Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short) NONCE_LENGTH);
-					
-					// Sign terminal nonce || vehicle public key
-					sigLen = cardSignature.sign(
-						tmp1, (short)0, (short) (NONCE_LENGTH+vehiclePubKeyLength),
-						buf, (short) (NONCE_LENGTH)
-					);
-					len = (short) (sigLen + NONCE_LENGTH);
-					
-					// send all the things
-					le = apdu.setOutgoing();
-					if (le < len) {
-						ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
-					}
-					apdu.setOutgoingLength(len);					 
-					apdu.sendBytes((short)0, len);
-					break;
-				case CMD_VEH_AUTHVEHICLE:
-					// allow performing commands only in order
-					if (vehicleInitialized[0] != 2)
-						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
-					vehicleInitialized[0] = 3;
 					
 					// save the terminal nonce in tmp1
 					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
@@ -368,6 +336,13 @@ public class RentalApplet extends Applet {
 					if (!verified) {
 						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 					}
+					
+					// cannot start the vehicle if card is still inUse from previous drive
+					// first the user has to write the old amount of km
+					// We do this after signature verification so we don't disclose the inUse flag status
+					// to unauthorized parties
+					if (inUse)
+						ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 					
 					// Set inUse at first
 					inUse = true;
@@ -390,7 +365,7 @@ public class RentalApplet extends Applet {
 					break;
 				case CMD_VEH_SAVEKM:
 					// allow performing commands only in order
-					if (vehicleInitialized[0] != 3)
+					if (!vehicleInitialized[0])
 						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 					
 					// save the terminal nonce in tmp1

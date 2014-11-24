@@ -23,9 +23,8 @@ import terminal.utils.LogToFile;
 public class VehicleCommands {
 	public static final byte CLA_VEHICLE = (byte) 0xB2;
 	public static final byte CMD_VEH_INIT = (byte) 0x00;
-	public static final byte CMD_VEH_AUTHCARD = (byte) 0x01;
-	public static final byte CMD_VEH_AUTHVEHICLE = (byte) 0x02;
-	public static final byte CMD_VEH_SAVEKM = (byte) 0x03;
+	public static final byte CMD_VEH_START = (byte) 0x01;
+	public static final byte CMD_VEH_SAVEKM = (byte) 0x02;
 
 	
 	public static final short NONCE_LENGTH = 8;
@@ -107,36 +106,9 @@ public class VehicleCommands {
 		if (!verified) {
 			throw new SecurityException("Signature of Nonce and Signature Sc is not valid!");
 		}
-		
-		
-		
-		
 	}
 	
-	void authenticateCard() throws Exception {
-		byte[] nonce = new byte[NONCE_LENGTH];
-		random.nextBytes(nonce);
-		
-		ResponseAPDU response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_VEHICLE, CMD_VEH_AUTHCARD, 0x00, 0x00, nonce, 255)
-		);
-		if (response.getSW() != 0x9000) {
-			throw new Exception("Got invalid response");
-		}
-		
-		byte[] buffer = response.getData();
-		cardNonce = Arrays.copyOfRange(buffer, 0, NONCE_LENGTH);
-		byte[] signature = Arrays.copyOfRange(buffer, NONCE_LENGTH, buffer.length);
-		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
-		dataToVerify.write(nonce);
-		dataToVerify.write(Conversions.encodePubKey((ECPublicKey) vehicleKeypair.getPublic()));
-		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, signature);
-		if (!verified) {
-			throw new SecurityException("Card signature is not valid. Rejecting card");
-		}
-	}
-	
-	void authenticateVehicle() throws Exception {
+	void sendStart() throws Exception {
 		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
 		byte[] signature = ECCSignature.signData(cardNonce, vehicleKeypair.getPrivate());
@@ -147,7 +119,7 @@ public class VehicleCommands {
 		dataToSend.write(signature);
 		
 		ResponseAPDU response = comm.sendCommandAPDU(
-			new CommandAPDU(CLA_VEHICLE, CMD_VEH_AUTHVEHICLE, 0x00, 0x00, dataToSend.toByteArray(), 255)
+			new CommandAPDU(CLA_VEHICLE, CMD_VEH_START, 0x00, 0x00, dataToSend.toByteArray(), 255)
 		);
 		if (response.getSW() != 0x9000) {
 			throw new Exception("Got invalid response");
@@ -158,7 +130,7 @@ public class VehicleCommands {
 		signature = Arrays.copyOfRange(buffer, NONCE_LENGTH, buffer.length);
 		boolean verified = ECCSignature.verifySig(nonce, cardKey, signature);
 		if (!verified) {
-			throw new SecurityException("Card signature is not valid. Rejecting card");
+			throw new SecurityException("Card signature is not valid. Rejecting card and not starting vehicle");
 		}
 	}
 	
@@ -208,14 +180,11 @@ public class VehicleCommands {
 	
 	public void startVehicle() throws Exception {
 		sendInit();
-		authenticateCard();
-		authenticateVehicle();
+		sendStart();
 	}
 	
 	public void stopVehicle(long kilometers) throws Exception {
 		sendInit();
-		authenticateCard();
-		authenticateVehicle();
 		writeKilometers(kilometers);
 	}
 }
