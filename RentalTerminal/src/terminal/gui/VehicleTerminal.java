@@ -13,6 +13,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -42,6 +43,8 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 
 	JTextArea logArea;
 	private CardCommunication comm;
+	JFrame frame = this;
+
 
 	public VehicleTerminal() {
     	comm = new CardCommunication(this);
@@ -98,6 +101,10 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 				try {
 					VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
 					vehicleCmds.startVehicle();
+				} catch (SecurityException e) {
+					Log.error(e.getMessage());
+					
+					JOptionPane.showMessageDialog(frame, e.getMessage());					
 				} catch (Exception e) {
 					Log.error(e.getMessage());
 					e.printStackTrace();

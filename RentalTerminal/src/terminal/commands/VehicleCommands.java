@@ -25,6 +25,8 @@ public class VehicleCommands {
 	public static final byte CMD_VEH_INIT = (byte) 0x00;
 	public static final byte CMD_VEH_START = (byte) 0x01;
 	public static final byte CMD_VEH_SAVEKM = (byte) 0x02;
+	
+	public static final int SW_CONDITIONS_NOT_SATISFIED = 0x6985;
 
 	
 	public static final short NONCE_LENGTH = 8;
@@ -121,6 +123,14 @@ public class VehicleCommands {
 		ResponseAPDU response = comm.sendCommandAPDU(
 			new CommandAPDU(CLA_VEHICLE, CMD_VEH_START, 0x00, 0x00, dataToSend.toByteArray(), 255)
 		);
+		
+		if (response.getSW() == SW_CONDITIONS_NOT_SATISFIED) {
+			throw new SecurityException(
+				"InUse flag is set. The vehicle cannot be started before the previous km " +
+				"value will be saved on the card"
+			);
+		}
+		
 		if (response.getSW() != 0x9000) {
 			throw new Exception("Got invalid response");
 		}
