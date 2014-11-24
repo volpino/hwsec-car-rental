@@ -399,11 +399,14 @@ public class RentalApplet extends Applet {
 					
 					inUse = false;
 					
-					// Copy the kilometer into the data to sign buffer
-					Util.arrayCopy(kmToAdd, (short) 0, tmp1, NONCE_LENGTH, KM_LENGTH);
+					tmp1[NONCE_LENGTH] = CLA_VEHICLE;
+					tmp1[NONCE_LENGTH+1] = CMD_VEH_SAVEKM;
+					     
+					// Copy the kilometer into the buffer with data to sign
+					Util.arrayCopy(kmToAdd, (short) 0, tmp1, (short) (NONCE_LENGTH+2), KM_LENGTH);
 					
-					// Sign terminal nonce + amount of km
-					sigLen = cardSignature.sign(tmp1, (short)0, (short) (NONCE_LENGTH+KM_LENGTH), buf, (short) 0);
+					// Sign terminal nonce + CLA_VEHICLE + CMD_VEH_SAVEKM + amount of km
+					sigLen = cardSignature.sign(tmp1, (short)0, (short) (NONCE_LENGTH+2+KM_LENGTH), buf, (short) 0);
 					
 					// send all the things
 					len = sigLen;
@@ -482,26 +485,29 @@ public class RentalApplet extends Applet {
 	
 	void sendResponse(byte[] buf, APDU apdu, byte[] response, short responseLength) {
 		// tmp1 contains the terminal nonce
-		byte[] terminalNonce = tmp1;
+		byte[] dataToSign = tmp1;
+		// Put also CLA_RECEPTION and INS in the data to sign
+		tmp1[NONCE_LENGTH] = CLA_RECEPTION;
+		tmp1[NONCE_LENGTH+1] = buf[ISO7816.OFFSET_INS];
 		
 		// create new nonce
-		random.generateData(buf, (short) 0, (short)NONCE_LENGTH);
+		random.generateData(buf, (short) 0, (short) NONCE_LENGTH);
 		
-		// Store new card nonce into nonce
-		Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short)NONCE_LENGTH);
+		// Store new card nonce into "nonce"
+		Util.arrayCopy(buf, (short) 0, nonce, (short) 0, (short) NONCE_LENGTH);
 		
 		if (response != null) {
 			// Set size of response payload
-			Util.arrayCopy(response, (short) 0, terminalNonce, (short) NONCE_LENGTH, responseLength);
+			Util.arrayCopy(response, (short) 0, dataToSign, (short) (NONCE_LENGTH+2), responseLength);
 			Util.arrayCopy(response, (short) 0, buf, (short) (NONCE_LENGTH+1), responseLength);
 		}
 		buf[NONCE_LENGTH] = (byte) responseLength;
 		
 		// sign new nonce
 		short sigLen = cardSignature.sign(
-			terminalNonce,  // data to sign
+			dataToSign,  // data to sign
 			(short) 0,  // start of data to sign
-			(short) (NONCE_LENGTH + responseLength),  // length to sign is nonce + response
+			(short) (NONCE_LENGTH + 2 + responseLength),  // length to sign is nonce + response
 			buf,  // destination
 			(short) (NONCE_LENGTH + 1 + responseLength + 1)  // put the signature after nonce, response length, response data and signature length  
 		);

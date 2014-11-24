@@ -161,6 +161,8 @@ public class VehicleCommands {
 		
 		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
 		dataToVerify.write(nonce);
+		dataToVerify.write(CLA_VEHICLE);
+		dataToVerify.write(CMD_VEH_SAVEKM);
 		dataToVerify.write(kmBytes);
 		
 		byte[] buffer = response.getData();

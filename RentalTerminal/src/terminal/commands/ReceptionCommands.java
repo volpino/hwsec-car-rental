@@ -114,6 +114,8 @@ public class ReceptionCommands {
 
 		ByteArrayOutputStream dataToVerify = new ByteArrayOutputStream();
 		dataToVerify.write(nonce);
+		dataToVerify.write(CLA_RECEPTION);
+		dataToVerify.write(command);
 		byte[] result = null;
 		
 		if (buf[NONCE_LENGTH] != 0) {
