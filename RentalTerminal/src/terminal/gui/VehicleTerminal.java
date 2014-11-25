@@ -52,8 +52,8 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 
 
 	public VehicleTerminal() {
-    	comm = new CardCommunication(this);
 		initUI();
+    	comm = new CardCommunication(this);
 	}
 
 	private void initUI(){
@@ -111,7 +111,8 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 				try {
 					VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
 					vehicleCmds.startVehicle();
-				} catch (RuntimeException e) {  // inUse flag popup error
+					Log.info("Started car: " + carID);
+				} catch (IllegalStateException e) {  // inUse flag popup error
 					Log.error(e.getMessage());
 					
 					JOptionPane.showMessageDialog(frame, e.getMessage());					
@@ -144,6 +145,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 						VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
 						vehicleCmds.stopVehicle(driveKilometers);
 						kilometerField.setText("");
+						Log.info("Stopped car: " + carID + " and written " + driveKilometers + "km to card.");
 					} catch (Exception e) {
 						Log.error(e.getMessage());
 						e.printStackTrace();
@@ -171,7 +173,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 	 * @return true if it is valid, false otherwise
 	 */
 	boolean isKilometerFieldValid(long value){
-		if(value >= 1 && value <= Long.MAX_VALUE)
+		if(value >= 0 && value <= Long.MAX_VALUE)
 			return true;
 		else
 			return false;

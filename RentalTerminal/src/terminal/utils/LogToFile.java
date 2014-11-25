@@ -2,6 +2,7 @@ package terminal.utils;
 
 import java.io.IOException;  
 import java.util.logging.FileHandler;  
+import java.util.logging.Level;
 import java.util.logging.Logger;  
 import java.util.logging.SimpleFormatter;  
 
@@ -23,8 +24,9 @@ public class LogToFile {
             SimpleFormatter formatter = new SimpleFormatter();  
             fh.setFormatter(formatter);  
             
+            logger.setLevel(Level.FINE);
             // the following statement is used to log any messages  
-            logger.info(message);  
+            logger.fine(message);  
             
             fh.close();
             logger.removeHandler(fh);

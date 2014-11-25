@@ -48,11 +48,22 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	String[] cars = {"car0", "car1", "car2", "car3", "car4", "car5"};
 	
 	private CardCommunication comm;
+	private ReceptionCommands receptionCmds;
+
 	JFrame frame = this;
         
+    // Possible operations
+    final String CHECK_INUSE = "Check InUse flag";
+    final String ASSOCIATION_STATUS = "Check vehicle-association";
+    final String ADD_VEHICLE = "Add certificate for vehicle";
+    final String REMOVE_VEHICLE = "Remove certificate from card";
+    final String GET_KM = "Get kilometer counting";
+    final String RESET_KM = "Reset kilometer counting";
+
     public ReceptionTerminal() {
-    	comm = new CardCommunication(this);
     	initUI();
+    	comm = new CardCommunication(this);
+    	receptionCmds = new ReceptionCommands(comm);
     }
     
     /** Creates the GUI shown inside the frame's content pane. */
@@ -131,13 +142,6 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
      * Creates the panel shown by the command tab.
      */
     private JPanel createCommandsPanel() {        
-        // Possible operations
-        final String CHECK_INUSE = "Check InUse flag";
-        final String ASSOCIATION_STATUS = "Check vehicle-association";
-        final String ADD_VEHICLE = "Add certificate for vehicle";
-        final String REMOVE_VEHICLE = "Remove certificate from card";
-        final String GET_KM = "Get kilometer counting";
-        final String RESET_KM = "Reset kilometer counting";
 
         String[] commands = {
         	CHECK_INUSE, ASSOCIATION_STATUS, ADD_VEHICLE, REMOVE_VEHICLE, GET_KM, RESET_KM
@@ -158,12 +162,14 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         cmdBox.add(initialize);
         cmdBox.add(Box.createRigidArea(new Dimension(40, 0)));
         
-		final ReceptionCommands receptionCmds = new ReceptionCommands(comm);
         initialize.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
 				try {
 					receptionCmds.sendInitNonce();
+					doAction(CHECK_INUSE);
+					doAction(ASSOCIATION_STATUS);
+					doAction(GET_KM);
 				} catch (Exception e) {
 					Log.error("Error: " + e.getMessage());
 					e.printStackTrace();
@@ -179,85 +185,10 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         cmdBox.add(commandsList);
         cmdBox.add(Box.createRigidArea(new Dimension(20, 0)));
         cmdBox.add(launchCommand);
-        
         launchCommand.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent action) {
-				if (commandsList.getSelectedItem().toString().equals(GET_KM)) {
-					try {
-						long kilometerOnCard = receptionCmds.getKilometers();
-						Log.info("Read out "+kilometerOnCard+" driven kilometers.");
-					} catch (Exception e) {
-						Log.error("Could not read out kilometers");
-						e.printStackTrace();
-					}
-				}
-				if (commandsList.getSelectedItem().toString().equals(RESET_KM)) {
-					try {
-						receptionCmds.resetKilometers();
-						Log.info("Kilometers on card were reset");
-					} catch (Exception e) {
-						Log.error("Could not reset kilometers");
-						e.printStackTrace();
-					}
-				}
-				if (commandsList.getSelectedItem().toString().equals(CHECK_INUSE)) {
-					try {
-						boolean inUseFlag = receptionCmds.checkInUseFlag();
-						Log.info("InUseFlag on card is set to: "+ inUseFlag);
-					} catch (Exception e) {
-						Log.error("Could not check inUseFlag");
-						e.printStackTrace();
-					}
-				}
-				if (commandsList.getSelectedItem().toString().equals(ASSOCIATION_STATUS)) {
-					try {
-						byte[] vehicleKey = receptionCmds.associationStatus();
-						if (vehicleKey == null) {
-							Log.info("Card is not associated with any vehicle");
-						}
-						for (int i=0; i<cars.length; i++) {
-							ECPublicKey currKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/cars", cars[i]);
-							byte[] currKeyBytes = Conversions.encodePubKey(currKey);
-							if (Arrays.equals(currKeyBytes, vehicleKey)) {
-								Log.info("Card associated with " + cars[i]);
-								break;
-							}
-						}
-					} catch (Exception e) {
-						Log.error("Could not check association status");
-						e.printStackTrace();
-					}
-				}
-				if (commandsList.getSelectedItem().toString().equals(ADD_VEHICLE)) {
-					try {
-						String carID = (String) JOptionPane.showInputDialog(
-							frame,
-							"Please choose a vehicle",
-						    "Choose vehicle",
-						    JOptionPane.PLAIN_MESSAGE,
-						    null,
-						    cars,
-						    cars[0]
-						);
-
-						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/cars", carID);
-						receptionCmds.addVehicleCert(key);
-						Log.info("The card is now associated with the vehicle");
-					} catch (Exception e) {
-						Log.error("Could not associate card with vehicle");
-						e.printStackTrace();
-					}
-				}
-				if (commandsList.getSelectedItem().toString().equals(REMOVE_VEHICLE)) {
-					try {
-						receptionCmds.deleteVehicleCert();
-						Log.info("Vehicle de-associated with card");
-					} catch (Exception e) {
-						Log.error("Could not de-associate vehicle from card");
-						e.printStackTrace();
-					}
-				}
+				doAction(commandsList.getSelectedItem().toString());
 			}
 		});
         
@@ -277,6 +208,85 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         return pane;
     }
     
+	private void doAction(String command) {
+		if (command.equals(GET_KM)) {
+			try {
+				long kilometerOnCard = receptionCmds.getKilometers();
+				Log.info("Read out "+kilometerOnCard+" driven kilometers.");
+			} catch (Exception e) {
+				Log.error("Could not read out kilometers");
+				e.printStackTrace();
+			}
+		}
+		if (command.equals(RESET_KM)) {
+			try {
+				receptionCmds.resetKilometers();
+				Log.info("Kilometers on card were reset");
+			} catch (Exception e) {
+				Log.error("Could not reset kilometers");
+				e.printStackTrace();
+			}
+		}
+		if (command.equals(CHECK_INUSE)) {
+			try {
+				boolean inUseFlag = receptionCmds.checkInUseFlag();
+				Log.info("InUseFlag on card is set to: "+ inUseFlag);
+			} catch (Exception e) {
+				Log.error("Could not check inUseFlag");
+				e.printStackTrace();
+			}
+		}
+		if (command.equals(ASSOCIATION_STATUS)) {
+			try {
+				byte[] vehicleKey = receptionCmds.associationStatus();
+				if (vehicleKey == null) {
+					Log.info("Card is not associated with any vehicle");
+				}
+				for (int i=0; i<cars.length; i++) {
+					ECPublicKey currKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/cars", cars[i]);
+					byte[] currKeyBytes = Conversions.encodePubKey(currKey);
+					if (Arrays.equals(currKeyBytes, vehicleKey)) {
+						Log.info("Card associated with " + cars[i]);
+						break;
+					}
+				}
+			} catch (Exception e) {
+				Log.error("Could not check association status");
+				e.printStackTrace();
+			}
+		}
+		if (command.equals(ADD_VEHICLE)) {
+			try {
+				String carID = (String) JOptionPane.showInputDialog(
+					frame,
+					"Please choose a vehicle",
+				    "Choose vehicle",
+				    JOptionPane.PLAIN_MESSAGE,
+				    null,
+				    cars,
+				    cars[0]
+				);
+	
+				ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/cars", carID);
+				receptionCmds.addVehicleCert(key);
+				Log.info("The card is now associated with the vehicle");
+			} catch (Exception e) {
+				Log.error("Could not associate card with vehicle");
+				e.printStackTrace();
+			}
+		}
+		if (command.equals(REMOVE_VEHICLE)) {
+			try {
+				receptionCmds.deleteVehicleCert();
+				Log.info("Vehicle de-associated with card");
+			} catch (Exception e) {
+				Log.error("Could not de-associate vehicle from card");
+				e.printStackTrace();
+			}
+		}
+	}
+
+
 	@Override
 	public void cardInserted() {
 		launchCommand.setEnabled(false);

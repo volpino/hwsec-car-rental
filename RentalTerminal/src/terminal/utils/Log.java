@@ -16,7 +16,8 @@ import javax.swing.JTextArea;
 public class Log {
 	public static Logger logger;
 	static {
-		logger = Logger.getLogger("");
+		logger = Logger.getLogger("GUILogger");
+		logger.setLevel(Level.INFO);
 		logger.addHandler(new TextAreaHandler());
 	}
 	
@@ -29,7 +30,7 @@ public class Log {
 	}
 	
 	public static void debug(Object o) {
-		logger.log(Level.INFO, o.toString());		
+		logger.log(Level.FINE, o.toString());		
 	}
 	
 	public static JTextArea getLoggingArea() {

@@ -143,7 +143,7 @@ public class VehicleCommands {
 		);
 		
 		if (response.getSW() == SW_CONDITIONS_NOT_SATISFIED) {
-			throw new RuntimeException(
+			throw new IllegalStateException(
 				"InUse flag is set. The vehicle cannot be started before the previous km " +
 				"value will be saved on the card"
 			);
