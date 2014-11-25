@@ -19,22 +19,26 @@ import javax.swing.JFrame;
 import terminal.commands.CardCommunication;
 import terminal.commands.PersonalizationCommands;
 import terminal.commands.ReceptionCommands;
+import terminal.utils.Conversions;
 import terminal.utils.Log;
 import terminal.crypto.ECCKeyGenerator;
 
 import java.awt.*;
 import java.awt.event.*;
 import java.security.interfaces.ECPublicKey;
+import java.util.Arrays;
 
 public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	private static final long serialVersionUID = -3660099088414835331L;
 
 	static final String TITLE = "ReceptionTerminal";
-	
+		
 	JComboBox commandsList;
 	JButton initialize;
 	JButton launchCommand;
 	JButton cardSetup;
+	
+	String[] cars = {"car0", "car1", "car2", "car3", "car4", "car5"};
 	
 	private CardCommunication comm;
 	JFrame frame = this;
@@ -118,12 +122,15 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
     private JPanel createCommandsPanel() {        
         // Possible operations
         final String CHECK_INUSE = "Check InUse flag";
+        final String ASSOCIATION_STATUS = "Check vehicle-association";
         final String ADD_VEHICLE = "Add certificate for vehicle";
         final String REMOVE_VEHICLE = "Remove certificate from card";
         final String GET_KM = "Get kilometer counting";
         final String RESET_KM = "Reset kilometer counting";
 
-        String[] commands = {CHECK_INUSE, ADD_VEHICLE, REMOVE_VEHICLE, GET_KM, RESET_KM};
+        String[] commands = {
+        	CHECK_INUSE, ASSOCIATION_STATUS, ADD_VEHICLE, REMOVE_VEHICLE, GET_KM, RESET_KM
+        };
         
         commandsList = new JComboBox(commands);
 
@@ -192,9 +199,27 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 						e.printStackTrace();
 					}
 				}
+				if (commandsList.getSelectedItem().toString().equals(ASSOCIATION_STATUS)) {
+					try {
+						byte[] vehicleKey = receptionCmds.associationStatus();
+						if (vehicleKey == null) {
+							Log.info("Card is not associated with any vehicle");
+						}
+						for (int i=0; i<cars.length; i++) {
+							ECPublicKey currKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", cars[i]);
+							byte[] currKeyBytes = Conversions.encodePubKey(currKey);
+							if (Arrays.equals(currKeyBytes, vehicleKey)) {
+								Log.info("Card associated with " + cars[i]);
+								break;
+							}
+						}
+					} catch (Exception e) {
+						Log.error("Could not check association status");
+						e.printStackTrace();
+					}
+				}
 				if (commandsList.getSelectedItem().toString().equals(ADD_VEHICLE)) {
 					try {
-						Object[] cars = {"car0", "car1", "car2", "car3", "car4", "car5"};
 						String carID = (String) JOptionPane.showInputDialog(
 							frame,
 							"Please choose a vehicle",

@@ -24,6 +24,7 @@ public class ReceptionCommands {
 	public static final byte CMD_REC_CHECK_INUSE = (byte) 0x03;
 	public static final byte CMD_REC_ADD_CERT = (byte) 0x04;
 	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
+	public static final byte CMD_REC_ISASSOCIATED = (byte) 0x06;
 
 	public static final short NONCE_LENGTH = 8;
 	
@@ -166,5 +167,10 @@ public class ReceptionCommands {
 	
 	public void deleteVehicleCert() throws Exception{
 		sendCommand(CMD_REC_DEL_CERT, null);
+	}
+	
+	public byte[] associationStatus() throws Exception{
+		byte[] vehiclePubKey = sendCommand(CMD_REC_ISASSOCIATED, null);
+		return vehiclePubKey;
 	}
 }

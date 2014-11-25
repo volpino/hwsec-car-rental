@@ -40,6 +40,7 @@ public class RentalApplet extends Applet {
 	public static final byte CMD_REC_CHECK_INUSE = (byte) 0x03;
 	public static final byte CMD_REC_ADD_CERT = (byte) 0x04;
 	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
+	public static final byte CMD_REC_ISASSOCIATED = (byte) 0x06;
 	
 	public static final byte CLA_VEHICLE = (byte) 0xB2;
 	public static final byte CMD_VEH_INIT = (byte) 0x00;
@@ -255,9 +256,21 @@ public class RentalApplet extends Applet {
 					verifyCommand(buf);
 					
 					isAssociated = false;  // first set flag to false
+					inUse = false;  // also set inUse to false 
 					Util.arrayFillNonAtomic(vehicleCert, (short) 0, (short) vehicleCert.length, (byte) 0);
 					
 					sendResponse(buf, apdu, null, (short)0);
+					break;
+				case CMD_REC_ISASSOCIATED:  // Get association status with vehicle
+					verifyCommand(buf);
+					
+					if (isAssociated) {
+						short vehiclePubKeyLength = vehiclePubKey.getW(tmp2, (short) 0);
+						sendResponse(buf, apdu, tmp2, vehiclePubKeyLength);
+					}
+					else {
+						sendResponse(buf, apdu, null, (short)0);
+					}
 					break;
 				default:
 					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
