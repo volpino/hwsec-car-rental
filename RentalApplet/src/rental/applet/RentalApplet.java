@@ -1,6 +1,3 @@
-/**
- * 
- */
 package rental.applet;
 
 
@@ -18,21 +15,27 @@ import javacard.security.RandomData;
 import javacard.security.Signature;
 
 /**
- * @author javacard
- *
+ * 
+ * Applet for Car Rental project 2014 - Group 7
+ * 
+ * @author Federico Scrinzi
+ * @author Leon Schoorl
+ * @author Nils Rodday
+ * @author Moritz Muller
  */
 public class RentalApplet extends Applet {
+	// Constants for card status
 	public static final byte STATUS_UNINITIALIZED = 0;
 	public static final byte STATUS_INITIALIZED = 1;
 
-	private byte status = STATUS_UNINITIALIZED;
-
+	// Issuing commands
 	public static final byte CLA_ISSUE = (byte) 0xB0;
 	public static final byte CMD_CARDID = (byte) 0x00;
 	public static final byte CMD_CARDKEYS = (byte) 0x01;
 	public static final byte CMD_COMPANYPUB = (byte) 0x02;
 	public static final byte CMD_RANDSEED = (byte) 0x03;
 	
+	// Card-Reception communication commands
 	public static final byte CLA_RECEPTION = (byte) 0xB1;
 	public static final byte CMD_REC_INIT = (byte) 0x00;
 	public static final byte CMD_REC_GET_KM = (byte) 0x01;
@@ -42,51 +45,56 @@ public class RentalApplet extends Applet {
 	public static final byte CMD_REC_DEL_CERT = (byte) 0x05;
 	public static final byte CMD_REC_ISASSOCIATED = (byte) 0x06;
 	
+	// Card-Vehicle communication commands
 	public static final byte CLA_VEHICLE = (byte) 0xB2;
 	public static final byte CMD_VEH_INIT = (byte) 0x00;
 	public static final byte CMD_VEH_START = (byte) 0x01;
 	public static final byte CMD_VEH_SAVEKM = (byte) 0x02;
 	
+	// Length constants (in bytes)
 	public static final short NONCE_LENGTH = 8;
 	public static final short KM_LENGTH = 8;
 	public static final short COUNTER_LENGTH = 8;
 
+	// Private fields for the applet
+	private byte status = STATUS_UNINITIALIZED;
 	private short cardID = 0;
 	private byte[] kilometers;
 	private byte[] certCounter;
 	private boolean inUse = false; 
 	private boolean isAssociated = false;
+	
+	private ECPrivateKey cardPrivKey;
+	private ECPublicKey cardPubKey;
+	
+	private ECPublicKey companyPubKey;
+	private ECPublicKey vehiclePubKey;
+	
+	private Signature companySignature;
+	private Signature vehicleSignature;
+	private Signature cardSignature;
+	
+	private byte[] vehicleCert;
+	private short vehicleCertLength;
+	
+	// Ram-stored arrays
 	private boolean[] receptionInitialized;
 	private boolean[] vehicleInitialized;
+	private short[] offset;
+	private byte[] nonce;
+	private byte[] tmp1;
+	private byte[] tmp2;
+	private byte[] tmp3;
 
 	private RandomData random;
 	
 	// Curve EC_F2M_163 parameters
-	static final byte[] CURVE_A = {7, 37, 70, -75, 67, 82, 52, -92, 34, -32, 120, -106, 117, -12, 50, -56, -108, 53, -34, 82, 66};
-	static final byte[] CURVE_B = {0, -55, 81, 125, 6, -43, 36, 13, 60, -1, 56, -57, 75, 32, -74, -51, 77, 111, -99, -44, -39};
-	static final byte[] CURVE_R = {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -26, 15, -56, -126, 28, -57, 77, -82, -81, -63};
-	static final short[] CURVE_P = {8, 2, 1};
-	static final byte[] CURVE_G = {4, 7, -81, 105, -104, -107, 70, 16, 61, 121, 50, -97, -52, 61, 116, -120, 15, 51, -69, -24, 3, -53, 1, -20, 35, 33, 27, 89, 102, -83, -22, 29, 63, -121, -9, -22, 88, 72, -82, -16, -73, -54, -97};
-
-	// Ram-stored arrays
-	short[] offset;
-	byte[] nonce;
-	byte[] tmp1;
-	byte[] tmp2;
-	byte[] tmp3;
+	public static final byte[] CURVE_A = {7, 37, 70, -75, 67, 82, 52, -92, 34, -32, 120, -106, 117, -12, 50, -56, -108, 53, -34, 82, 66};
+	public static final byte[] CURVE_B = {0, -55, 81, 125, 6, -43, 36, 13, 60, -1, 56, -57, 75, 32, -74, -51, 77, 111, -99, -44, -39};
+	public static final byte[] CURVE_R = {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, -26, 15, -56, -126, 28, -57, 77, -82, -81, -63};
+	public static final short[] CURVE_P = {8, 2, 1};
+	public static final byte[] CURVE_G = {4, 7, -81, 105, -104, -107, 70, 16, 61, 121, 50, -97, -52, 61, 116, -120, 15, 51, -69, -24, 3, -53, 1, -20, 35, 33, 27, 89, 102, -83, -22, 29, 63, -121, -9, -22, 88, 72, -82, -16, -73, -54, -97};
 	
-	byte[] vehicleCert;
-	short vehicleCertLength;
-	
-	ECPrivateKey cardPrivKey;
-	ECPublicKey cardPubKey;
-	
-	ECPublicKey companyPubKey;
-	ECPublicKey vehiclePubKey;
-	
-	Signature companySignature;
-	Signature vehicleSignature;
-	Signature cardSignature;
 	
 	public static void install(byte[] bArray, short bOffset, byte bLength) {
 		// GP-compliant JavaCard applet registration
@@ -106,6 +114,7 @@ public class RentalApplet extends Applet {
 		// vehicle certificate array
 		vehicleCert = new byte[64];
 		
+		// allocate certCounter and kilometer counter arrays
 		certCounter = new byte[COUNTER_LENGTH];
 		kilometers = new byte[KM_LENGTH];
 		
@@ -123,18 +132,24 @@ public class RentalApplet extends Applet {
 			KeyBuilder.TYPE_EC_F2M_PUBLIC, KeyBuilder.LENGTH_EC_F2M_163, false
 		);
 		
+		// initialize keys
 		initKey(cardPrivKey);
 		initKey(cardPubKey);
 		initKey(companyPubKey);
 		initKey(vehiclePubKey);
 		
+		// create instances of signatures
 		companySignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
 		cardSignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
 		vehicleSignature = Signature.getInstance(Signature.ALG_ECDSA_SHA, false);
 		
+		// create instance of secure random
 		random = RandomData.getInstance(RandomData.ALG_SECURE_RANDOM);
 	}
 
+	/**
+	 * process method for the applet. It processes every command sent to the card
+	 */
 	public void process(APDU apdu) {
 		// Good practice: Return 9000 on SELECT
 		if (selectingApplet()) {
@@ -142,8 +157,9 @@ public class RentalApplet extends Applet {
 		}
 
 		byte[] buf = apdu.getBuffer();
+		
+		// allow issuing commands only if the status of the card is uninitialized
 		if(status == STATUS_UNINITIALIZED) {
-			// Issuing commands
 			if (buf[ISO7816.OFFSET_CLA] == CLA_ISSUE) {
 				switch (buf[ISO7816.OFFSET_INS]) {
 				case CMD_CARDID:  // set the card id
@@ -174,13 +190,14 @@ public class RentalApplet extends Applet {
 				}
 			}
 			else {
+				// if the card is initialize the issuing commands are not allowed
 				ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 			}
 		}
 		else {
 			// Reception commands
 			if (buf[ISO7816.OFFSET_CLA] == CLA_RECEPTION) {
-				// First we need an initialization command
+				// First we need an initialization command, disallow other commands
 				if (buf[ISO7816.OFFSET_INS] != CMD_REC_INIT && !receptionInitialized[0]) {
 					ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 				}
@@ -198,6 +215,8 @@ public class RentalApplet extends Applet {
 					short sigLen = cardSignature.sign(
 						tmp1, (short)0, (short) NONCE_LENGTH, buf, (short) (2+NONCE_LENGTH)
 					);
+					
+					// total length is |cardID| + |nonce| + |signature|
 					short totLen = (short) (sigLen + 2 + NONCE_LENGTH);
 
 					short le = apdu.setOutgoing();
@@ -207,6 +226,7 @@ public class RentalApplet extends Applet {
 					apdu.setOutgoingLength(totLen);					 
 					apdu.sendBytes((short)0, totLen);
 					
+					// now the communication is initialized, other commands are allowed
 					receptionInitialized[0] = true;
 					break;
 				case CMD_REC_GET_KM:  // get kilometer counting
@@ -219,6 +239,7 @@ public class RentalApplet extends Applet {
 				case CMD_REC_RESET_KM:  // reset kilometer counting
 					verifyCommand(buf);
 					
+					// the filling with zeroes needs to be an atomic operation
 					JCSystem.beginTransaction();
 					for (short i=0; i<KM_LENGTH; i++) {
 						kilometers[i] = 0;
@@ -236,21 +257,24 @@ public class RentalApplet extends Applet {
 					break;
 				case CMD_REC_ADD_CERT:  // add certificate for vehicle, get public key and counter
 					verifyCommand(buf, (short) 3);
-										
+
+					// get vehicle certificate and save it in vehicleCert
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 1);
 					Util.arrayCopy(buf, offset[0], vehicleCert, (short) 0, offset[1]);
 					vehicleCertLength = offset[1];
 					
+					// get vehicle pubkey and save it in vehiclePubKey
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 2);
 					vehiclePubKey.setW(buf, offset[0], offset[1]);
 					vehicleSignature.init(vehiclePubKey, Signature.MODE_VERIFY);
 					
+					// get the certificate counter and save it in certCounter
 					findOffset(buf, (short) (ISO7816.OFFSET_CDATA+NONCE_LENGTH), (short) 3);
 					Util.arrayCopy(buf, offset[0], certCounter, (short) 0, offset[1]);
 					
 					isAssociated = true;  // only at the end set flag to true
 					
-					sendResponse(buf, apdu, null, (short)0);
+					sendResponse(buf, apdu, null, (short) 0);
 					break;				
 				case CMD_REC_DEL_CERT:  // delete certificate for vehicle, public key and counter
 					verifyCommand(buf);
@@ -273,6 +297,7 @@ public class RentalApplet extends Applet {
 					}
 					break;
 				default:
+					// good practice: If you don't know the INStruction, say so:
 					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
 				}
 			}
@@ -287,9 +312,7 @@ public class RentalApplet extends Applet {
 					ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 				}
 				switch (buf[ISO7816.OFFSET_INS]) {
-				case CMD_VEH_INIT:
-					vehicleInitialized[0] = true;
-					
+				case CMD_VEH_INIT:					
 					// save the terminal nonce in tmp1
 					Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
 					
@@ -300,7 +323,8 @@ public class RentalApplet extends Applet {
 					// Put card public key in the buffer (length + actual data)
 					len = cardPubKey.getW(buf, (short) (NONCE_LENGTH + 1));
 					buf[NONCE_LENGTH] = (byte) len;
-					//Point len to the position in buf where we can write
+					
+					// len points to the position in buf where we can write
 					len += NONCE_LENGTH + 1;
 					
 					// Put certCounter in the buffer
@@ -325,6 +349,9 @@ public class RentalApplet extends Applet {
 					buf[len] = (byte) sigLen;
 					len += sigLen + 1;
 					
+					// now the communication is initialized
+					vehicleInitialized[0] = true;
+					
 					// send it!
 					le = apdu.setOutgoing();
 					if (le < len) {
@@ -334,7 +361,7 @@ public class RentalApplet extends Applet {
 					apdu.sendBytes((short)0, len);
 					break;
 				case CMD_VEH_START:
-					// allow performing commands only in order
+					// allow performing command only after initialization
 					if (!vehicleInitialized[0])
 						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 					
@@ -352,8 +379,8 @@ public class RentalApplet extends Applet {
 					
 					// cannot start the vehicle if card is still inUse from previous drive
 					// first the user has to write the old amount of km
-					// We do this after signature verification so we don't disclose the inUse flag status
-					// to unauthorized parties
+					// We do this after signature verification so we don't disclose the inUse flag
+					// status to unauthorized parties
 					if (inUse)
 						ISOException.throwIt(ISO7816.SW_CONDITIONS_NOT_SATISFIED);
 					
@@ -377,7 +404,7 @@ public class RentalApplet extends Applet {
 					apdu.sendBytes((short)0, len);
 					break;
 				case CMD_VEH_SAVEKM:
-					// allow performing commands only in order
+					// allow performing command only after initialization
 					if (!vehicleInitialized[0])
 						ISOException.throwIt(ISO7816.SW_COMMAND_NOT_ALLOWED);
 					
@@ -403,6 +430,7 @@ public class RentalApplet extends Applet {
 						ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 					}
 					
+					// the sum needs to be atomic, in case of card tear the value needs to be consistent
 					JCSystem.beginTransaction();
 					if (!sumByteArrays(kilometers, kmToAdd, KM_LENGTH)) {  // there was an overflow!
 						JCSystem.abortTransaction();
@@ -410,12 +438,15 @@ public class RentalApplet extends Applet {
 					}
 					JCSystem.commitTransaction();
 					
+					// only after summing the kilometers set the inUse flag to false
 					inUse = false;
 					
+					// Now let's generate a signature as ACK for recording the new km value
+					// also sign CLA and INS
 					tmp1[NONCE_LENGTH] = CLA_VEHICLE;
 					tmp1[NONCE_LENGTH+1] = CMD_VEH_SAVEKM;
 					     
-					// Copy the kilometer into the buffer with data to sign
+					// Copy the kilometer counter into the buffer with data to sign
 					Util.arrayCopy(kmToAdd, (short) 0, tmp1, (short) (NONCE_LENGTH+2), KM_LENGTH);
 					
 					// Sign terminal nonce + CLA_VEHICLE + CMD_VEH_SAVEKM + amount of km
@@ -431,16 +462,33 @@ public class RentalApplet extends Applet {
 					apdu.sendBytes((short)0, len);
 					break;
 				default:
+					// good practice: If you don't know the INStruction, say so:
 					ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
 				}
 			}
 			else {
+				// good practice: If you don't know the CLA, say so:
 				ISOException.throwIt(ISO7816.SW_CLA_NOT_SUPPORTED);
 			}
 		}
 	}
 	
-	void findOffset(byte[] buf, short base, short index) {
+	/**
+	 * 
+	 * This method allows to find offset and length of a message chunk.
+	 * The message format is of the kind: |L1|P1|L2|P2|L3|P3|...
+	 * where Li is the length of the following payload and Pi is the actual payload.
+	 * Li is always one byte while Pi can have variable length (specified by Li)
+	 * 
+	 * By invoking this method the "offset" array is populated with:
+	 * offset[0] -> offset of the i-th payload in the input buffer
+	 * offset[1] -> length of the i-th payload in the input buffer
+	 * 
+	 * @param buf input buffer
+	 * @param base offset in the input buffer where the payloads start
+	 * @param index the index of the payload we want to get (starting from 0)
+	 */
+	private void findOffset(byte[] buf, short base, short index) {
 		short length = (short) (buf[base] & 0xFF);
 		for (short i=0; i<index; i++) {
 			base += length + 1;
@@ -450,7 +498,12 @@ public class RentalApplet extends Applet {
 		offset[1] = length;
 	}
 	
-	void initKey(ECKey key) {
+	/**
+	 * Initializes an ECC key with the curve parameters
+	 * 
+	 * @param key the key object to initialize
+	 */
+	private static void initKey(ECKey key) {
 		key.setA(CURVE_A, (short)0, (short) CURVE_A.length);
 		key.setB(CURVE_B, (short)0, (short) CURVE_B.length);
 		key.setR(CURVE_R, (short)0, (short) CURVE_R.length);
@@ -458,11 +511,25 @@ public class RentalApplet extends Applet {
 		key.setG(CURVE_G, (short)0, (short) CURVE_G.length);
 	}
 	
-	void verifyCommand(byte[] buf) {
+	/**
+	 * Wrapper for verifyCommand(byte[] buf, short arguments) when there are no arguments
+	 * 
+	 * @param buf buffer that contains the command from the terminal 
+	 */
+	private void verifyCommand(byte[] buf) {
 		verifyCommand(buf, (short) 0);
 	}
 	
-	void verifyCommand(byte[] buf, short arguments) {		
+	/**
+	 * This method allows to verify a command received from the reception terminal.
+	 * It performs all the necessary signature verification and payload extraction as specified
+	 * in the protocol description.
+	 * It is used primarily to keep the card-reception communication implementation DRY.
+	 * 
+	 * @param buf buffer that contains the command from the terminal 
+	 * @param arguments number of arguments in the payload to expect
+	 */
+	private void verifyCommand(byte[] buf, short arguments) {		
 		// save the terminal nonce in tmp1
 		Util.arrayCopy(buf, ISO7816.OFFSET_CDATA, tmp1, (short) 0, (short) NONCE_LENGTH);
 
@@ -496,7 +563,18 @@ public class RentalApplet extends Applet {
 			ISOException.throwIt(ISO7816.SW_SECURITY_STATUS_NOT_SATISFIED);
 	}
 	
-	void sendResponse(byte[] buf, APDU apdu, byte[] response, short responseLength) {
+	/**
+	 * This method allows to send a response to the reception terminal.
+	 * It performs all the necessary signature computation and message formatting as specified
+	 * in the protocol description.
+	 * It is used primarily to keep the card-reception communication implementation DRY.
+	 * 
+	 * @param buf the response buffer
+	 * @param apdu the APDU object used for communication
+	 * @param response response payload (can be null if the command does not have any output)
+	 * @param responseLength length of the response payload
+	 */
+	private void sendResponse(byte[] buf, APDU apdu, byte[] response, short responseLength) {
 		// tmp1 contains the terminal nonce
 		byte[] dataToSign = tmp1;
 		// Put also CLA_RECEPTION and INS in the data to sign
@@ -538,7 +616,18 @@ public class RentalApplet extends Applet {
 		apdu.sendBytes((short)0, totLen);
 	}
 	
-	boolean sumByteArrays(byte[] first, byte[] second, short len) {
+	/**
+	 * This methods allows to sum two arrays of bytes.
+	 * The input is treated as big-endian signed integers, the sum happens in-place (the parameter
+	 * first will contain the result).
+	 * Negative inputs will cause an error.
+	 * 
+	 * @param first first operand, will also contain the result at the end of the operation
+	 * @param second second operand
+	 * @param len length of the two arrays
+	 * @return true if the sum was successful and no overflow happened, false otherwise.
+	 */
+	private boolean sumByteArrays(byte[] first, byte[] second, short len) {
 		if (second[0] < 0)  // do not allow negative numbers (first byte needs to be positive)
 			return false;
 		
