@@ -1,0 +1,6 @@
+RentalTerminal
+==============
+
+This package contains the source code for the ReceptionTerminal, VehicleTerminal and the common libraries used by those.
+
+To start the ReceptionTerminal execute main method of terminal.gui.ReceptionTerminal, similarly to start the VehicleTerminal execute the main method of terminal.gui.VehicleTerminal
