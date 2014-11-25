@@ -84,7 +84,12 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
         startButton = new JButton("Start Car");
         kilometerField = new JTextField(8);
         stopButton = new JButton("Stop Car");
+
+		carsList.setEnabled(false);
+        startButton.setEnabled(false);
         stopButton.setEnabled(false);
+        kilometerField.setEnabled(false);
+        
                 
         // Add components to layout
 		mainCmdPanel.add(startButton);
@@ -106,7 +111,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 				try {
 					VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
 					vehicleCmds.startVehicle();
-				} catch (SecurityException e) {
+				} catch (RuntimeException e) {  // inUse flag popup error
 					Log.error(e.getMessage());
 					
 					JOptionPane.showMessageDialog(frame, e.getMessage());					
@@ -138,6 +143,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 					try {
 						VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
 						vehicleCmds.stopVehicle(driveKilometers);
+						kilometerField.setText("");
 					} catch (Exception e) {
 						Log.error(e.getMessage());
 						e.printStackTrace();
