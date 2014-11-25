@@ -15,7 +15,13 @@ import terminal.utils.CertCounter;
 import terminal.utils.Conversions;
 import terminal.utils.Log;
 
-
+/**
+ * Class that handles the communication between the reception terminal and the card
+ * 
+ * @author Federico Scrinzi
+ * @author Moritz Muller
+ *
+ */
 public class ReceptionCommands {
 	public static final byte CLA_RECEPTION = (byte) 0xB1;
 	public static final byte CMD_REC_INIT = (byte) 0x00;
@@ -33,9 +39,7 @@ public class ReceptionCommands {
 	
 	byte[] cardNonce;
 	byte[] cardID;
-	
-	boolean cardAuthenticated = false;
-	
+		
 	ECPublicKey cardKey;
 	
 	
@@ -44,6 +48,11 @@ public class ReceptionCommands {
 		random = new SecureRandom();
 	}
 	
+	/**
+	 * This initializes the communication between the reception and the card 
+	 * 
+	 * @throws Exception
+	 */
 	public void sendInitNonce() throws Exception {
 		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
@@ -68,11 +77,17 @@ public class ReceptionCommands {
 		if (!result) {
 			throw new SecurityException("Invalid signature from the card. Authentication aborted");
 		}
-		
-		cardAuthenticated = true;
 	}
 	
-	byte[] sendCommand(byte command, byte[][] payload) throws Exception {
+	/**
+	 * Generic method to send reception commands to the card
+	 * 
+	 * @param command INS code of the requested command
+	 * @param payload arguments of the command
+	 * @return response of the command
+	 * @throws Exception
+	 */
+	private byte[] sendCommand(byte command, byte[][] payload) throws Exception {
 		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
 		KeyPair companyKey = ECCKeyGenerator.loadKeys("keys/master", "company");
 		dataToSign.write(cardNonce);
@@ -133,20 +148,44 @@ public class ReceptionCommands {
 		return result;
 	}
 	
+	/**
+	 * Get the kilometer counter
+	 * 
+	 * @return kilometer counter as long
+	 * @throws Exception
+	 */
 	public long getKilometers() throws Exception{
 		byte[] kilometers = sendCommand(CMD_REC_GET_KM, null);
 		return Conversions.bytesToLong(kilometers);
 	}
 	
+	/**
+	 * Reset the kilometer counter
+	 * 
+	 * @throws Exception
+	 */
 	public void resetKilometers() throws Exception{
 		sendCommand(CMD_REC_RESET_KM, null);
 	}
 	
+	/**
+	 * Check the status of the inUse flag
+	 * 
+	 * @return the value of the inUse flag
+	 * @throws Exception
+	 */
 	public boolean checkInUseFlag() throws Exception{
 		byte[] response = sendCommand(CMD_REC_CHECK_INUSE, null);
 		return (response[0] == (byte) 1);
 	}
 	
+	/**
+	 * Sends a certificate that allows the card to interact with a vehicle, together with
+	 * the vehicle public key and the certificate counter.
+	 * 
+	 * @param publicVehicleKey public key of the chosen vehicle
+	 * @throws Exception
+	 */
 	public void addVehicleCert(ECPublicKey publicVehicleKey) throws Exception {
 		byte[] counter = Conversions.longToBytes(CertCounter.getNewCounter());
 		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
@@ -165,10 +204,21 @@ public class ReceptionCommands {
 		sendCommand(CMD_REC_ADD_CERT, data);
 	}
 	
+	/**
+	 * Deletes the vehicle certificate from the card, de-associating the card from the vehicle
+	 * 
+	 * @throws Exception
+	 */
 	public void deleteVehicleCert() throws Exception{
 		sendCommand(CMD_REC_DEL_CERT, null);
 	}
 	
+	/**
+	 * Get the association status of the card
+	 * 
+	 * @return the public key of the vehicle the card is associated with. null if it's not associated
+	 * @throws Exception
+	 */
 	public byte[] associationStatus() throws Exception{
 		byte[] vehiclePubKey = sendCommand(CMD_REC_ISASSOCIATED, null);
 		return vehiclePubKey;

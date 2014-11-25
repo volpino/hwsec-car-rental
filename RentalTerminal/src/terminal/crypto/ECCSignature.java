@@ -11,8 +11,21 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Arrays;
 
+/**
+ * Collection of helpers for ECC signature operations
+ * 
+ * @author Alessio Parzian
+ *
+ */
 public class ECCSignature {
-	
+	/**
+	 * Sign a byte array using ECDSA
+	 * 
+	 * @param data the data to sign
+	 * @param key the key used for signing
+	 * @return a byte array with the signature
+	 * @throws Exception
+	 */
 	public static byte[] signData(byte[] data, PrivateKey key) throws Exception{
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 		Signature signer = Signature.getInstance("SHA1withECDSA", "BC");
@@ -21,6 +34,15 @@ public class ECCSignature {
 		return signer.sign();
 	}
 	
+	/**
+	 * Verify an ECDSA signature
+	 * 
+	 * @param data the data to verify
+	 * @param key the key used for verification
+	 * @param sig the signature to verify
+	 * @return a boolean value that confirms the validity of the signature
+	 * @throws Exception
+	 */
 	public static boolean verifySig(byte[] data, PublicKey key, byte[] sig) throws Exception {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 		Signature signer = Signature.getInstance("SHA1withECDSA", "BC");
@@ -29,7 +51,11 @@ public class ECCSignature {
 	    return signer.verify(sig);
 	 }
 	
-	// Testing purpose	
+	/**
+	 * Testing method for signature generation and verification
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args){
 		
 		String test = "HeyJustTryIt";

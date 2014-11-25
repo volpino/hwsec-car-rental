@@ -21,6 +21,13 @@ import org.bouncycastle.jce.spec.ECNamedCurveParameterSpec;
 import org.bouncycastle.math.ec.ECCurve;
 
 
+/**
+ * Collection of helpers for ECC key operations
+ * 
+ * @author Alessio Parzian
+ * @author Moritz Muller
+ *
+ */
 public class ECCKeyGenerator {
 	public final static String CURVE = "c2pnb163v1";
 	
@@ -31,9 +38,6 @@ public class ECCKeyGenerator {
 		Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 	}
 
-	/*
-	 * Define a generator which produce a "prime192v1", size: 192bit
-	 */
 	public ECCKeyGenerator() throws Exception {		
 		ECGenParameterSpec ecGenSpec = new ECGenParameterSpec(CURVE);
 		g = KeyPairGenerator.getInstance("ECDSA", "BC");
@@ -57,12 +61,26 @@ public class ECCKeyGenerator {
 		this.pair = pair;
 	}
 	
+	/**
+	 * Generate a new ECC keypair
+	 * 
+	 * @return the generated keypair
+	 * @throws Exception
+	 */
 	public static KeyPair generateKeys() throws Exception{
 		ECCKeyGenerator gen = new ECCKeyGenerator();
 		KeyPair sc = gen.getKeyPair();
 		return sc;
 	}
 	
+	/**
+	 * Save the keypair in a file
+	 * 
+	 * @param keys the keypair we want to store
+	 * @param path path where to store the keys
+	 * @param keyName filename prefix of the output files
+	 * @throws IOException
+	 */
 	public static void saveKeys(KeyPair keys, String path, String keyName) throws IOException{
 		savePublicKey(keys, path, keyName);
 
@@ -74,6 +92,14 @@ public class ECCKeyGenerator {
 		fos.close();
 	}
 	
+	/**
+	 * Save a public key in a file using X509 encoding
+	 * 
+	 * @param keys the keypair with the public key to save
+	 * @param path path where to store the keys
+	 * @param keyName filename prefix of the output files
+	 * @throws IOException
+	 */
 	public static void savePublicKey(KeyPair keys, String path, String keyName) throws IOException{
 		PublicKey publicKey = keys.getPublic();
 		// Store Public Key.
@@ -83,6 +109,16 @@ public class ECCKeyGenerator {
 		fos.close();
 	}
 	
+	/**
+	 * Loads a public key from a file in X509 encoding
+	 * 
+	 * @param path path where to load the keys
+	 * @param keyName filename prefix of the input files
+	 * @return a public key object
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeySpecException
+	 */
 	public static PublicKey loadPublicKey(String path, String keyName) throws IOException, NoSuchAlgorithmException,
 	InvalidKeySpecException {
 		// Read Public Key
@@ -98,7 +134,18 @@ public class ECCKeyGenerator {
 		return publicKey;
 	}
 	
-	// Taken from https://bitcointalk.org/index.php?topic=2899.0
+	/**
+	 * 
+	 * Decodes a byte array that contains an ECC public key in ASN.1 X9.62 format
+	 * 
+	 * Taken from https://bitcointalk.org/index.php?topic=2899.0
+	 * 
+	 * @param encodedW ECC key in ASN.1 format (0x04 || Xcoord || Ycoord)
+	 * @return
+	 * @throws InvalidKeySpecException
+	 * @throws NoSuchAlgorithmException
+	 * @throws NoSuchProviderException
+	 */	
 	public static PublicKey decodeKey(byte[] encodedW) throws InvalidKeySpecException, NoSuchAlgorithmException, NoSuchProviderException {
 	    ECNamedCurveParameterSpec params = ECNamedCurveTable.getParameterSpec(CURVE);
 	    KeyFactory keyfactory = KeyFactory.getInstance("ECDSA", "BC");
@@ -110,6 +157,16 @@ public class ECCKeyGenerator {
 	    return keyfactory.generatePublic(keySpec);
 	}
 	
+	/**
+	 * Load a keypair from files
+	 * 
+	 * @param path path where to load the keys
+	 * @param keyName filename prefix of the input files
+	 * @return a keypair object
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeySpecException
+	 */
 	public static KeyPair loadKeys(String path, String keyName) throws IOException, NoSuchAlgorithmException,
 	InvalidKeySpecException {
 		PublicKey publicKey = loadPublicKey(path, keyName);
@@ -128,12 +185,19 @@ public class ECCKeyGenerator {
 		return new KeyPair(publicKey, privateKey);
 	}
 
-	public void printPair() {
+	/**
+	 * Debugging method for printing key data
+	 */
+	private void printPair() {
 		System.out.println(pair.getPrivate());
 		System.out.println(pair.getPublic());
 	}
 	
-	// Testing purposes
+	/**
+	 * Debugging and testing method to generate keypairs and save them to a file
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		for (int i=0; i <= 5; i++) {
 			try {

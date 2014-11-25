@@ -28,6 +28,13 @@ import java.awt.event.*;
 import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 
+/**
+ * GUI for reception terminal
+ * 
+ * @author Moritz Muller
+ * @author Federico Scrinzi
+ *
+ */
 public class ReceptionTerminal extends JFrame implements TerminalInterface {
 	private static final long serialVersionUID = -3660099088414835331L;
 
@@ -85,7 +92,9 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         //frame.setEnabled(false);
     }
 
-    /** Creates the panel shown by the first tab. */
+    /**
+     * Creates the panel shown by the setup tab.
+     */
     private JPanel createSetupPanel() {
         JPanel box = new JPanel();
         box.setLayout(new BoxLayout(box, BoxLayout.PAGE_AXIS));
@@ -118,7 +127,9 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
         return pane;
     }
 
-    /** Creates the panel shown by the second tab. */
+    /**
+     * Creates the panel shown by the command tab.
+     */
     private JPanel createCommandsPanel() {        
         // Possible operations
         final String CHECK_INUSE = "Check InUse flag";

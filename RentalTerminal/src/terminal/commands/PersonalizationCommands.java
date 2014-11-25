@@ -13,7 +13,13 @@ import terminal.crypto.ECCKeyGenerator;
 import terminal.utils.Conversions;
 import terminal.utils.Log;
 
-
+/**
+ * Class that handles the commands for the personalization phase of the card
+ * 
+ * @author Federico Scrinzi
+ * @author Leon Schoorl
+ *
+ */
 public class PersonalizationCommands {
 	public static final byte CLA_ISSUE = (byte) 0xB0;
 	public static final byte CMD_CARDID = (byte) 0x00;
@@ -30,7 +36,12 @@ public class PersonalizationCommands {
 		random = new SecureRandom();
 	}
 	
-	void setCardID() throws Exception {
+	/**
+	 * Sets the card ID with a random value generated on the terminal side
+	 * 
+	 * @throws Exception
+	 */
+	private void setCardID() throws Exception {
 		cardID = new byte[2];
 		random.nextBytes(cardID);
 		ResponseAPDU response = comm.sendCommandAPDU(
@@ -42,7 +53,13 @@ public class PersonalizationCommands {
 		Log.info("Card ID set to " + Conversions.bytesToHex(cardID));
 	}
 	
-	void setCardKeyPair() throws Exception {
+	/**
+	 * Generates an ECC keypair on the terminal and sends it to the card.
+	 * Saves the public key on the terminal.
+	 * 
+	 * @throws Exception
+	 */
+	private void setCardKeyPair() throws Exception {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
 		KeyPair pair = ECCKeyGenerator.generateKeys();
 		ECCKeyGenerator.savePublicKey(pair, "keys/customers", Conversions.bytesToHex(cardID));
@@ -68,7 +85,12 @@ public class PersonalizationCommands {
 		Log.info("Keypair generated and sent to the smartcard");
 	}
 	
-	void setCompanyPublicKey() throws Exception {
+	/**
+	 * Sends the company public key to the card
+	 * 
+	 * @throws Exception
+	 */
+	private void setCompanyPublicKey() throws Exception {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
 		KeyPair pair = ECCKeyGenerator.loadKeys("keys/master", "company");			
 		ECPublicKey pub = (ECPublicKey) pair.getPublic();
@@ -85,7 +107,12 @@ public class PersonalizationCommands {
 		Log.info("Company public key sent to the smartcard");
 	}
 	
-	void setRandomSeed() throws Exception {
+	/**
+	 * Sends an 8-byte random seed to the card
+	 * 
+	 * @throws Exception
+	 */
+	private void setRandomSeed() throws Exception {
 		byte[] seed = new byte[8];
 		random.nextBytes(seed);
 		ResponseAPDU response = comm.sendCommandAPDU(
@@ -97,6 +124,15 @@ public class PersonalizationCommands {
 		Log.info("Random seed set");
 	}
 	
+	/**
+	 * Handles all the issuance process.
+	 * - set the card ID
+	 * - generate and set the card keypair
+	 * - set the company public key
+	 * - set the random seed 
+	 * 
+	 * @throws Exception
+	 */
 	public void doIssuance() throws Exception {
 		setCardID();
 		setCardKeyPair();

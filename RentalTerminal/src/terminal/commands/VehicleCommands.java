@@ -19,7 +19,13 @@ import terminal.utils.Conversions;
 
 import terminal.utils.LogToFile;
 
-
+/**
+ * Class that handles the communication between the vehicle and the card
+ * 
+ * @author Federico Scrinzi
+ * @author Nils Rodday
+ *
+ */
 public class VehicleCommands {
 	public static final byte CLA_VEHICLE = (byte) 0xB2;
 	public static final byte CMD_VEH_INIT = (byte) 0x00;
@@ -50,7 +56,12 @@ public class VehicleCommands {
 		companyKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/master", "company");
 	}
 	
-	void sendInit() throws Exception {
+	/**
+	 * Initializes the communication between the vehicle and the card
+	 * 
+	 * @throws Exception
+	 */
+	private void sendInit() throws Exception {
 		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
 		
@@ -110,7 +121,14 @@ public class VehicleCommands {
 		}
 	}
 	
-	void sendStart() throws Exception {
+	/**
+	 * Sends a command to the card for starting the vehicle.
+	 * If the operation is successful, it means that the card was authorized for this vehicle and
+	 * the inUse flag on the card was set. 
+	 * 
+	 * @throws Exception
+	 */
+	private void sendStart() throws Exception {
 		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
 		byte[] signature = ECCSignature.signData(cardNonce, vehicleKeypair.getPrivate());
@@ -144,6 +162,14 @@ public class VehicleCommands {
 		}
 	}
 	
+	/**
+	 * Sends a command to write the driven kilometers to the card.
+	 * If the operation was successful a non-repudiation proof of the writing on the card is sent
+	 * to the terminal and saved in the terminal log 
+	 * 
+	 * @param kilometers number of driven kilometers
+	 * @throws Exception
+	 */
 	void writeKilometers(long kilometers) throws Exception {
 		byte[] nonce = new byte[NONCE_LENGTH];
 		random.nextBytes(nonce);
@@ -183,18 +209,28 @@ public class VehicleCommands {
 			
 		}
 		
-		
 		LogToFile.write("Nonce: " + Arrays.toString(nonce));
 		LogToFile.write("Kilometers: " + Arrays.toString(kmBytes));
 		LogToFile.write("Signature: " + Arrays.toString(buffer));
 		
 	}
 	
+	/**
+	 * Sends initialization command and checks if the card is allowed to start the vehicle
+	 * 
+	 * @throws Exception
+	 */
 	public void startVehicle() throws Exception {
 		sendInit();
 		sendStart();
 	}
 	
+	/**
+	 * Sends initialization command and sends the amount of driven kilometers to the card
+	 * 
+	 * @param kilometers number of driven kilometers
+	 * @throws Exception
+	 */
 	public void stopVehicle(long kilometers) throws Exception {
 		sendInit();
 		writeKilometers(kilometers);

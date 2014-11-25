@@ -26,8 +26,13 @@ import terminal.commands.VehicleCommands;
 import terminal.utils.Log;
 
 
-// TODO Optional: Add option to simulate failure of kilometer writing
-
+/**
+ * GUI for vehicle terminal
+ * 
+ * @author Mortiz Muller
+ * @author Federico Scrinzi
+ *
+ */
 public class VehicleTerminal extends JFrame implements TerminalInterface {
 
 	private static final long serialVersionUID = -3770099088414835331L;
@@ -154,7 +159,11 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 		pack();
 	}
 	
-	// Verify that entered kilometers are valid
+	/**
+	 * Verify that entered kilometers are valid
+	 * @param value the km value to verify
+	 * @return true if it is valid, false otherwise
+	 */
 	boolean isKilometerFieldValid(long value){
 		if(value >= 1 && value <= Long.MAX_VALUE)
 			return true;

@@ -9,8 +9,14 @@ import java.security.spec.ECParameterSpec;
 import java.security.spec.EllipticCurve;
 import java.util.Arrays;
 
+/**
+ * Class for getting information about an ECC key.
+ * Used for debugging purposes
+ * 
+ * @author Leon Schoorl
+ *
+ */
 public class KeyDumper {
-
 	public static void main(String[] args) {
 		System.out.println("Loading master key pair..");
 		try {

@@ -16,7 +16,7 @@ import javacard.security.Signature;
 
 /**
  * 
- * Applet for Car Rental project 2014 - Group 7
+ * Applet for Car Rental project
  * 
  * @author Federico Scrinzi
  * @author Leon Schoorl

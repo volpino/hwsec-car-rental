@@ -7,7 +7,12 @@ import java.util.logging.Handler;
 
 import javax.swing.JTextArea;
 
-
+/**
+ * Helper class for logging to both console and textareas
+ * 
+ * @author Federico Scrinzi
+ *
+ */
 public class Log {
 	public static Logger logger;
 	static {

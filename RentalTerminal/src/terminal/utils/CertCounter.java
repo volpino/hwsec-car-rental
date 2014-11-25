@@ -6,7 +6,19 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Scanner;
 
+/**
+ * Collection of helpers for getting and storing certificate counters
+ * 
+ * @author Federico Scrinzi
+ *
+ */
 public class CertCounter {
+	/**
+	 * Generates a new company certificate counter
+	 * 
+	 * @return the newly generated counter
+	 * @throws IOException
+	 */
 	public static long getNewCounter() throws IOException {
 		String path = "keys/master/company.counter";
 		long result;
@@ -23,6 +35,12 @@ public class CertCounter {
 		return result;
 	}
 	
+	/**
+	 * Gets the last seen certcounter for the given vehicle
+	 * 
+	 * @param carID
+	 * @return
+	 */
 	public static long getCarCounter(String carID) {
 		Scanner in;
 		try {
@@ -35,6 +53,13 @@ public class CertCounter {
 		return ret;
 	}
 	
+	/**
+	 * Sets the last seen certcounter for the given vehicle
+	 * 
+	 * @param carID
+	 * @param counter
+	 * @throws IOException
+	 */
 	public static void setCarCounter(String carID, long counter) throws IOException {
 		FileWriter wr = new FileWriter("keys/cars/" + carID + ".counter");
 		wr.write(String.valueOf(counter));
