@@ -72,7 +72,7 @@ public class ReceptionCommands {
 		
 		Log.info("Card ID: "+Conversions.bytesToHex(cardID));
 		
-		cardKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/customers", Conversions.bytesToHex(cardID));
+		cardKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/customers", Conversions.bytesToHex(cardID));
 		boolean result = ECCSignature.verifySig(nonce, cardKey, signature);
 		if (!result) {
 			throw new SecurityException("Invalid signature from the card. Authentication aborted");
@@ -89,7 +89,7 @@ public class ReceptionCommands {
 	 */
 	private byte[] sendCommand(byte command, byte[][] payload) throws Exception {
 		ByteArrayOutputStream dataToSign = new ByteArrayOutputStream();
-		KeyPair companyKey = ECCKeyGenerator.loadKeys("keys/master", "company");
+		KeyPair companyKey = ECCKeyGenerator.loadKeys("data/master", "company");
 		dataToSign.write(cardNonce);
 		dataToSign.write(command);
 		if (payload != null) {
@@ -143,7 +143,9 @@ public class ReceptionCommands {
 		
 		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, cardSignature);
 		if (!verified) {
-			throw new SecurityException("Invalid signature from the card. The result of the command is not valid");
+			throw new SecurityException(
+				"Invalid signature from the card. The result of the command is not valid"
+			);
 		}
 		return result;
 	}
@@ -193,7 +195,7 @@ public class ReceptionCommands {
 		dataToSign.write(Conversions.encodePubKey(cardKey));
 		dataToSign.write(counter);
 		
-		KeyPair companyKey = ECCKeyGenerator.loadKeys("keys/master", "company");
+		KeyPair companyKey = ECCKeyGenerator.loadKeys("data/master", "company");
 		byte[] signature = ECCSignature.signData(dataToSign.toByteArray(), companyKey.getPrivate());
 
 		byte[][] data = new byte[3][];

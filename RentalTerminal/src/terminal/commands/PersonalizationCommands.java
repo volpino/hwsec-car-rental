@@ -62,7 +62,7 @@ public class PersonalizationCommands {
 	private void setCardKeyPair() throws Exception {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
 		KeyPair pair = ECCKeyGenerator.generateKeys();
-		ECCKeyGenerator.savePublicKey(pair, "keys/customers", Conversions.bytesToHex(cardID));
+		ECCKeyGenerator.savePublicKey(pair, "data/customers", Conversions.bytesToHex(cardID));
 		
 		ECPublicKey pub = (ECPublicKey) pair.getPublic();
 		ECPrivateKey priv = (ECPrivateKey) pair.getPrivate();
@@ -92,7 +92,7 @@ public class PersonalizationCommands {
 	 */
 	private void setCompanyPublicKey() throws Exception {
 		ByteArrayOutputStream data = new ByteArrayOutputStream();  // APDU data
-		KeyPair pair = ECCKeyGenerator.loadKeys("keys/master", "company");			
+		KeyPair pair = ECCKeyGenerator.loadKeys("data/master", "company");			
 		ECPublicKey pub = (ECPublicKey) pair.getPublic();
 		byte[] pubEncoded = Conversions.encodePubKey(pub);
 		data.write(pubEncoded.length);

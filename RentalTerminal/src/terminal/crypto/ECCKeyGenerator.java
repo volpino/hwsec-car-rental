@@ -204,8 +204,8 @@ public class ECCKeyGenerator {
 				ECCKeyGenerator gen = new ECCKeyGenerator();
 				System.out.println("Generating cars keys...");
 				gen.printPair();
-				saveKeys(gen.getKeyPair(),"keys/cars","car"+i);
-				KeyPair test = loadKeys("keys/cars","car"+i);
+				saveKeys(gen.getKeyPair(),"data/cars","car"+i);
+				KeyPair test = loadKeys("data/cars","car"+i);
 				gen.setKeyPair(test);
 				System.out.println("Keys restored");
 				gen.printPair();
@@ -218,8 +218,8 @@ public class ECCKeyGenerator {
 			ECCKeyGenerator gen = new ECCKeyGenerator();
 			System.out.println("Generating company keys...");
 			gen.printPair();
-			saveKeys(gen.getKeyPair(),"keys/master", "company");
-			KeyPair test = loadKeys("keys/master","company");
+			saveKeys(gen.getKeyPair(),"data/master", "company");
+			KeyPair test = loadKeys("data/master","company");
 			gen.setKeyPair(test);
 			System.out.println("Keys restored");
 			gen.printPair();

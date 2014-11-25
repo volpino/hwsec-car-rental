@@ -52,8 +52,8 @@ public class VehicleCommands {
 		comm = c;
 		random = new SecureRandom();
 		carID = id;
-		vehicleKeypair = ECCKeyGenerator.loadKeys("keys/cars", carID);
-		companyKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/master", "company");
+		vehicleKeypair = ECCKeyGenerator.loadKeys("data/cars", carID);
+		companyKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/master", "company");
 	}
 	
 	/**
@@ -204,14 +204,16 @@ public class VehicleCommands {
 		byte[] buffer = response.getData();
 		boolean verified = ECCSignature.verifySig(dataToVerify.toByteArray(), cardKey, buffer);
 		if (!verified) {
-			LogToFile.write("Card signature is not valid. Writing of kilometers was not successful");
+			LogToFile.write("Card signature is not valid. Writing of kilometers was not successful", carID);
 			throw new SecurityException("Card signature is not valid. Writing of kilometers was not successful");
 			
 		}
 		
-		LogToFile.write("Nonce: " + Arrays.toString(nonce));
-		LogToFile.write("Kilometers: " + Arrays.toString(kmBytes));
-		LogToFile.write("Signature: " + Arrays.toString(buffer));
+		LogToFile.write(
+			"Nonce: " + Arrays.toString(nonce) + "\n" +
+			"Kilometers: " + Arrays.toString(kmBytes) + "\n" +
+			"Signature: " + Arrays.toString(buffer),
+		carID);
 		
 	}
 	

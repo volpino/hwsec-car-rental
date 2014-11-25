@@ -1,0 +1,4 @@
+* Master folder contains the company key pair and certCounter
+* Cars folder contains all the car key pair, corresponding certCounter and logs
+* All key files are indexed using the ID of a car (e.g.: the car plate)
+* Files with pub extensions are obviously public keys

@@ -1,4 +1,0 @@
-*Master folder contains the company key pair
-*Cars folder contains all the car key pair
-*All key files are indexed using the ID of a car (I would say the car plate) -- for testing purpose I just call it carN
-*Files with pub extensions are obviously public keys

@@ -12,15 +12,14 @@ import java.util.logging.SimpleFormatter;
  *
  */
 public class LogToFile {
-    public static void write(String message) {
+    public static void write(String message, String carID) {
         Logger logger = Logger.getLogger("LogToFile");  
         FileHandler fh;  
           
         try {  
             // This block configure the logger with handler and formatter  
-            fh = new FileHandler("Vehicle.log", true);  
+            fh = new FileHandler("data/cars/" + carID + ".log", true);  
             logger.addHandler(fh);  
-            //logger.setLevel(Level.ALL);  
             SimpleFormatter formatter = new SimpleFormatter();  
             fh.setFormatter(formatter);  
             

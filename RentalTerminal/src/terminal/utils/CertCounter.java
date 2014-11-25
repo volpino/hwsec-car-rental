@@ -20,7 +20,7 @@ public class CertCounter {
 	 * @throws IOException
 	 */
 	public static long getNewCounter() throws IOException {
-		String path = "keys/master/company.counter";
+		String path = "data/master/company.counter";
 		long result;
 		try {
 			Scanner in = new Scanner(new FileReader(path));
@@ -44,7 +44,7 @@ public class CertCounter {
 	public static long getCarCounter(String carID) {
 		Scanner in;
 		try {
-			in = new Scanner(new FileReader("keys/cars/" + carID + ".counter"));
+			in = new Scanner(new FileReader("data/cars/" + carID + ".counter"));
 		} catch (FileNotFoundException e) {
 			return 0;
 		}
@@ -61,7 +61,7 @@ public class CertCounter {
 	 * @throws IOException
 	 */
 	public static void setCarCounter(String carID, long counter) throws IOException {
-		FileWriter wr = new FileWriter("keys/cars/" + carID + ".counter");
+		FileWriter wr = new FileWriter("data/cars/" + carID + ".counter");
 		wr.write(String.valueOf(counter));
 		wr.close();
 	}

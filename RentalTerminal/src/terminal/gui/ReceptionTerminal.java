@@ -217,7 +217,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 							Log.info("Card is not associated with any vehicle");
 						}
 						for (int i=0; i<cars.length; i++) {
-							ECPublicKey currKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", cars[i]);
+							ECPublicKey currKey = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/cars", cars[i]);
 							byte[] currKeyBytes = Conversions.encodePubKey(currKey);
 							if (Arrays.equals(currKeyBytes, vehicleKey)) {
 								Log.info("Card associated with " + cars[i]);
@@ -241,7 +241,7 @@ public class ReceptionTerminal extends JFrame implements TerminalInterface {
 						    cars[0]
 						);
 
-						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("keys/cars", carID);
+						ECPublicKey key = (ECPublicKey) ECCKeyGenerator.loadPublicKey("data/cars", carID);
 						receptionCmds.addVehicleCert(key);
 						Log.info("The card is now associated with the vehicle");
 					} catch (Exception e) {

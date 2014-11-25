@@ -70,7 +70,7 @@ public class ECCSignature {
 			//System.out.println("Creating key pair..");
 			//KeyPair keys = EECKeyGenerator.generateKeys();
 			System.out.println("loading key pair..");
-			KeyPair keys = ECCKeyGenerator.loadKeys("keys/cars", "car1");
+			KeyPair keys = ECCKeyGenerator.loadKeys("data/cars", "car1");
 
 			System.out.println("DONE");
 			System.out.println("Data: " + Arrays.toString(data));

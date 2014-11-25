@@ -47,6 +47,6 @@ local.properties
 *.iml
 *.iws
 
-RentalTerminal/keys/customers/*.pub
+RentalTerminal/data/customers/*.pub
 *.counter
 *.log
