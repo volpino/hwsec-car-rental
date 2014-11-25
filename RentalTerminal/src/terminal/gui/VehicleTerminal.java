@@ -1,5 +1,7 @@
 package terminal.gui;
 
+import game.Quickgame;
+
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.EventQueue;
@@ -48,7 +50,7 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 
 	JTextArea logArea;
 	private CardCommunication comm;
-	JFrame frame = this;
+	VehicleTerminal frame = this;
 
 
 	public VehicleTerminal() {
@@ -112,6 +114,9 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 					VehicleCommands vehicleCmds = new VehicleCommands(comm, carID);
 					vehicleCmds.startVehicle();
 					Log.info("Started car: " + carID);
+					Quickgame g = new Quickgame(frame);
+					g.startCar();
+
 				} catch (IllegalStateException e) {  // inUse flag popup error
 					Log.error(e.getMessage());
 					
@@ -211,5 +216,9 @@ public class VehicleTerminal extends JFrame implements TerminalInterface {
 				cT.setVisible(true);
 			}
 		});
+	}
+
+	public void setKilometers(long km) {
+		kilometerField.setText(Long.toString(km));
 	}
 }
